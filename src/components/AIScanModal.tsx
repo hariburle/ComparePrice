@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ProductOffer, UnitType } from '../types';
-import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2, Key } from 'lucide-react';
+import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 
 interface AIScanModalProps {
@@ -18,22 +18,9 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
-  const [customApiKey, setCustomApiKey] = useState<string>(
-    () => localStorage.getItem('user_gemini_api_key') || ''
-  );
-  const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
-
-  const saveApiKey = (key: string) => {
-    setCustomApiKey(key);
-    if (key.trim()) {
-      localStorage.setItem('user_gemini_api_key', key.trim());
-    } else {
-      localStorage.removeItem('user_gemini_api_key');
-    }
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,7 +101,7 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
     setLoading(true);
     setError(null);
 
-    // 1. First try backend API endpoint
+    // 1. First try backend API endpoint (if hosting on full-stack backend)
     try {
       const response = await fetch('/api/scan-label', {
         method: 'POST',
@@ -139,35 +126,30 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
       return;
     } catch (err: any) {
       const isStaticHost = err?.message === '404_STATIC_HOST' || err?.message?.includes('404');
-      
-      // 2. If static host (GitHub Pages), try client-side Gemini if API key is provided
-      const activeApiKey = customApiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY;
 
-      if (isStaticHost && activeApiKey) {
+      // 2. Client-side Gemini if build-time VITE_GEMINI_API_KEY exists
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+      if (isStaticHost && apiKey) {
         try {
-          const scanned = await parseWithClientSideGemini(activeApiKey, imagePreview, mimeType);
+          const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
           applyScannedData(scanned);
           return;
         } catch (clientErr: any) {
           console.error('Client Gemini Error:', clientErr);
-          setError(`Client-side Gemini AI error: ${clientErr.message || 'Invalid API key'}. Trying browser WebAssembly OCR...`);
         }
       }
 
-      // 3. Try pure browser WebAssembly OCR (Tesseract.js)
+      // 3. Pure browser WebAssembly OCR (Tesseract.js) fallback
       try {
-        if (isStaticHost && !activeApiKey) {
-          setShowApiKeyInput(true);
-        }
         const ocrScanned = await parseWithTesseract(imagePreview);
         applyScannedData(ocrScanned);
         return;
       } catch (ocrErr: any) {
         console.error('Tesseract OCR error:', ocrErr);
-        setError('Browser OCR scan complete with default fallback values.');
       }
 
-      // Pre-populate fallback demo values after delay
+      // 4. Fallback demo values if all else fails
       setTimeout(() => {
         onScannedOffer({
           name: 'AI Scanned Shelf Tag',
@@ -178,7 +160,7 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
           storeName: 'Grocery Store',
         });
         onClose();
-      }, 2000);
+      }, 1500);
     } finally {
       setLoading(false);
     }
@@ -266,36 +248,6 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
           </div>
         )}
 
-        {/* API Key Input for static hosts like GitHub Pages */}
-        {(showApiKeyInput || customApiKey) && (
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-indigo-600" />
-                Gemini API Key (for Static / GitHub Pages)
-              </label>
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[10px] text-indigo-600 underline font-medium"
-              >
-                Get Free Key
-              </a>
-            </div>
-            <input
-              type="password"
-              placeholder="AIzaSy..."
-              value={customApiKey}
-              onChange={(e) => saveApiKey(e.target.value)}
-              className="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-            />
-            <p className="text-[10px] text-slate-400 leading-tight">
-              Saved locally in your browser so you can run AI scans on static hosts without a backend.
-            </p>
-          </div>
-        )}
-
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2">
           <button
@@ -332,3 +284,4 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
     </div>
   );
 };
+
