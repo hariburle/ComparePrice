@@ -96,12 +96,18 @@ Guidance:
       return JSON.parse(jsonMatch[0]);
     };
 
-    try {
-      return await fetchModel('gemini-2.5-flash');
-    } catch (err: any) {
-      console.warn('Gemini 2.5 Flash call failed, trying Gemini 1.5 Flash:', err);
-      return await fetchModel('gemini-1.5-flash');
+    const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+    let lastError: Error | null = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        return await fetchModel(modelName);
+      } catch (err: any) {
+        console.warn(`Gemini model ${modelName} failed:`, err);
+        lastError = err;
+      }
     }
+    throw lastError || new Error('All Gemini models failed');
   };
 
   const parseWithTesseract = async (base64Data: string) => {
@@ -153,9 +159,9 @@ Guidance:
       // 1. Client-side Gemini if build-time VITE_GEMINI_API_KEY exists (Primary path on static hosts like GitHub Pages)
       if (apiKey) {
         try {
-          setScanStatus('Scanning with Gemini 2.5 Flash Vision...');
+          setScanStatus('Scanning with Gemini Flash Vision...');
           const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
-          applyScannedData(scanned, 'Gemini 2.5 Flash (Client API)');
+          applyScannedData(scanned, 'Gemini Flash (Client API)');
           return;
         } catch (clientErr: any) {
           console.error('Client Gemini Error:', clientErr);
@@ -329,7 +335,7 @@ Guidance:
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
             <span>
               {hasClientApiKey
-                ? 'Gemini 2.5 Flash Vision (Active via VITE_GEMINI_API_KEY)'
+                ? 'Gemini Flash Vision (Active via VITE_GEMINI_API_KEY)'
                 : '1. Gemini Server API → 2. Browser WebAssembly OCR (Fallback)'}
             </span>
           </div>
