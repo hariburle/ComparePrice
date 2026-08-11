@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ProductOffer, UnitType } from '../types';
 import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 
 interface AIScanModalProps {
   isOpen: boolean;
@@ -40,28 +39,69 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   };
 
   const parseWithClientSideGemini = async (apiKey: string, base64Data: string, mime: string) => {
-    const ai = new GoogleGenAI({ apiKey });
     const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const prompt = `Analyze this store shelf price label, product tag, or item package photo.
+Extract the product details and return ONLY a strict JSON object with no markdown formatting or commentary:
+{
+  "name": "Product name or short description",
+  "price": 0.00,
+  "size": 0,
+  "unit": "g" | "kg" | "oz" | "lb" | "ml" | "l" | "floz" | "gal" | "count" | "sheets" | "loads",
+  "packCount": 1,
+  "storeName": "Store name if visible or empty string",
+  "brand": "Brand name if visible or empty string"
+}
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          inlineData: {
-            mimeType: mime,
-            data: cleanBase64,
-          },
-        },
-        'Extract information from this store price tag into JSON format with keys: name (string), brand (string), storeName (string), price (number), size (number), unit (string: gal, oz, lb, kg, g, ml, l, count, loads, sheets), packCount (number). Return ONLY valid JSON.',
-      ],
-    });
+Guidance:
+- "price": numerical total shelf price (e.g. 4.99).
+- "size": total size per item (e.g. 500 for 500g, or 2 for 2L, or 12 for 12 oz).
+- "unit": choose best fit among g, kg, oz, lb, ml, l, floz, gal, count, sheets, loads.
+- "packCount": e.g. 12 if it says "12 pack", or 1 if single item.
+- If data is ambiguous, provide your best estimation based on standard retail tags.`;
 
-    const text = response.text || '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Could not parse JSON from Gemini response.');
+    const fetchModel = async (modelName: string) => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: mime || 'image/jpeg',
+                    data: cleanBase64,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        const msg = errJson?.error?.message || `HTTP ${response.status} ${response.statusText}`;
+        throw new Error(msg);
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Could not parse JSON response from Gemini');
+      }
+      return JSON.parse(jsonMatch[0]);
+    };
+
+    try {
+      return await fetchModel('gemini-2.5-flash');
+    } catch (err: any) {
+      console.warn('Gemini 2.5 Flash call failed, trying Gemini 1.5 Flash:', err);
+      return await fetchModel('gemini-1.5-flash');
     }
-    return JSON.parse(jsonMatch[0]);
   };
 
   const parseWithTesseract = async (base64Data: string) => {
