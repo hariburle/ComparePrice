@@ -144,7 +144,11 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
           return;
         } catch (clientErr: any) {
           console.error('Client Gemini Error:', clientErr);
+          setError(`Gemini API Error: ${clientErr.message || 'Invalid request'}. Falling back to Browser WebAssembly OCR...`);
         }
+      } else if (isStaticHost && !apiKey) {
+        console.warn('VITE_GEMINI_API_KEY is missing in static build.');
+        setError('Notice: VITE_GEMINI_API_KEY was not embedded during build. Using Browser WebAssembly OCR.');
       }
 
       // 3. Pure browser WebAssembly OCR (Tesseract.js) fallback
