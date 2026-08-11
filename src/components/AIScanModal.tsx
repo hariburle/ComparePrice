@@ -146,39 +146,14 @@ Guidance:
     setError(null);
     setScanStatus('Connecting to scanner...');
 
-    // 1. First try backend API endpoint (if hosting on full-stack backend)
     try {
-      setScanStatus('Scanning with Server Gemini Vision API...');
-      const response = await fetch('/api/scan-label', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: imagePreview,
-          mimeType,
-        }),
-      });
-
-      if (response.status === 404) {
-        throw new Error('404_STATIC_HOST');
-      }
-
-      const resData = await response.json();
-      if (!response.ok || !resData?.success) {
-        throw new Error(resData?.error || 'Failed to scan label with Gemini');
-      }
-
-      const scanned = resData.data;
-      applyScannedData(scanned, 'Gemini 2.5 Flash (Backend API)');
-      return;
-    } catch (err: any) {
-      const isStaticHost = err?.message === '404_STATIC_HOST' || err?.message?.includes('404');
-
-      // 2. Client-side Gemini if build-time VITE_GEMINI_API_KEY exists
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const isGitHubPages = window.location.hostname.endsWith('.github.io');
 
-      if (isStaticHost && apiKey) {
+      // 1. Client-side Gemini if build-time VITE_GEMINI_API_KEY exists (Primary path on static hosts like GitHub Pages)
+      if (apiKey) {
         try {
-          setScanStatus('Scanning with Gemini 2.5 Flash (VITE_GEMINI_API_KEY)...');
+          setScanStatus('Scanning with Gemini 2.5 Flash Vision...');
           const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
           applyScannedData(scanned, 'Gemini 2.5 Flash (Client API)');
           return;
@@ -186,14 +161,39 @@ Guidance:
           console.error('Client Gemini Error:', clientErr);
           setError(`Gemini API Error: ${clientErr.message || 'Invalid request'}. Falling back to Browser WebAssembly OCR...`);
         }
-      } else if (isStaticHost && !apiKey) {
-        console.warn('VITE_GEMINI_API_KEY is missing in static build.');
-        setError('Notice: VITE_GEMINI_API_KEY was not embedded during build. Using Browser WebAssembly OCR.');
+      }
+
+      // 2. Try backend API endpoint (only if NOT on static host like github.io and no client key)
+      if (!isGitHubPages) {
+        try {
+          setScanStatus('Scanning with Server Gemini Vision API...');
+          const response = await fetch('/api/scan-label', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageBase64: imagePreview,
+              mimeType,
+            }),
+          });
+
+          if (response.ok) {
+            const resData = await response.json();
+            if (resData?.success) {
+              applyScannedData(resData.data, 'Gemini 2.5 Flash (Backend API)');
+              return;
+            }
+          }
+        } catch (err: any) {
+          console.warn('Backend API scan failed or unavailable:', err);
+        }
+      } else if (!apiKey) {
+        console.warn('VITE_GEMINI_API_KEY is missing in GitHub Pages build.');
+        setError('Notice: VITE_GEMINI_API_KEY is missing in static build. Using Browser WebAssembly OCR.');
       }
 
       // 3. Pure browser WebAssembly OCR (Tesseract.js) fallback
       try {
-        setScanStatus('Static host detected. Scanning with Browser WebAssembly OCR (Tesseract.js)...');
+        setScanStatus('Scanning with Browser WebAssembly OCR (Tesseract.js)...');
         const ocrScanned = await parseWithTesseract(imagePreview);
         applyScannedData(ocrScanned, 'Browser WebAssembly OCR');
         return;
