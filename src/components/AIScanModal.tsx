@@ -18,9 +18,12 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const hasClientApiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,6 +34,7 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
     reader.onload = () => {
       setImagePreview(reader.result as string);
       setError(null);
+      setScanStatus(null);
     };
     reader.readAsDataURL(file);
   };
@@ -100,9 +104,11 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
 
     setLoading(true);
     setError(null);
+    setScanStatus('Connecting to scanner...');
 
     // 1. First try backend API endpoint (if hosting on full-stack backend)
     try {
+      setScanStatus('Scanning with Server Gemini Vision API...');
       const response = await fetch('/api/scan-label', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +128,7 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
       }
 
       const scanned = resData.data;
-      applyScannedData(scanned);
+      applyScannedData(scanned, 'Gemini 2.5 Flash (Backend API)');
       return;
     } catch (err: any) {
       const isStaticHost = err?.message === '404_STATIC_HOST' || err?.message?.includes('404');
@@ -132,8 +138,9 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
 
       if (isStaticHost && apiKey) {
         try {
+          setScanStatus('Scanning with Gemini 2.5 Flash (VITE_GEMINI_API_KEY)...');
           const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
-          applyScannedData(scanned);
+          applyScannedData(scanned, 'Gemini 2.5 Flash (Client API)');
           return;
         } catch (clientErr: any) {
           console.error('Client Gemini Error:', clientErr);
@@ -142,41 +149,50 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
 
       // 3. Pure browser WebAssembly OCR (Tesseract.js) fallback
       try {
+        setScanStatus('Static host detected. Scanning with Browser WebAssembly OCR (Tesseract.js)...');
         const ocrScanned = await parseWithTesseract(imagePreview);
-        applyScannedData(ocrScanned);
+        applyScannedData(ocrScanned, 'Browser WebAssembly OCR');
         return;
       } catch (ocrErr: any) {
         console.error('Tesseract OCR error:', ocrErr);
       }
 
       // 4. Fallback demo values if all else fails
+      setScanStatus('Pre-populating demo values...');
       setTimeout(() => {
-        onScannedOffer({
-          name: 'AI Scanned Shelf Tag',
-          price: 5.99,
-          size: 750,
-          unit: 'ml',
-          packCount: 1,
-          storeName: 'Grocery Store',
-        });
-        onClose();
-      }, 1500);
+        applyScannedData(
+          {
+            name: 'AI Scanned Shelf Tag',
+            price: 5.99,
+            size: 750,
+            unit: 'ml',
+            packCount: 1,
+            storeName: 'Grocery Store',
+          },
+          'Demo Preset Fallback'
+        );
+      }, 1000);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyScannedData = (scanned: any) => {
-    onScannedOffer({
-      name: scanned.name || 'Scanned Label Item',
-      price: parseFloat(scanned.price) || 0,
-      size: parseFloat(scanned.size) || 1,
-      unit: (scanned.unit as UnitType) || 'g',
-      packCount: parseInt(scanned.packCount) || 1,
-      storeName: scanned.storeName || '',
-      brand: scanned.brand || '',
-    });
-    onClose();
+  const applyScannedData = (scanned: any, method: string) => {
+    setScanStatus(`✨ Successfully extracted via ${method}!`);
+    setTimeout(() => {
+      onScannedOffer({
+        name: scanned.name || 'Scanned Label Item',
+        price: parseFloat(scanned.price) || 0,
+        size: parseFloat(scanned.size) || 1,
+        unit: (scanned.unit as UnitType) || 'g',
+        packCount: parseInt(scanned.packCount) || 1,
+        storeName: scanned.storeName || '',
+        brand: scanned.brand || '',
+        scannedByMethod: method,
+      });
+      onClose();
+      setScanStatus(null);
+    }, 1200);
   };
 
   return (
@@ -241,12 +257,39 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
           )}
         </div>
 
+        {scanStatus && (
+          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-semibold text-indigo-900 flex items-center gap-2 animate-fade-in">
+            {loading ? (
+              <Loader2 className="w-4 h-4 text-indigo-600 animate-spin shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            )}
+            <span>{scanStatus}</span>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>{error}</span>
           </div>
         )}
+
+        {/* Engine Environment Feedback Info */}
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1 text-[11px] text-slate-600">
+          <div className="font-bold text-slate-800 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            AI Extraction Engine Pipeline:
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            <span>
+              {hasClientApiKey
+                ? 'Gemini 2.5 Flash Vision (Active via VITE_GEMINI_API_KEY)'
+                : '1. Gemini Server API → 2. Browser WebAssembly OCR (Fallback)'}
+            </span>
+          </div>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2">

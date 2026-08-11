@@ -35,6 +35,7 @@ export interface ProductOffer {
   storeName?: string;
   brand?: string;
   notes?: string;
+  scannedByMethod?: string;
 }
 
 export interface StandardizedComparison {

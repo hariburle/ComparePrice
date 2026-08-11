@@ -42,6 +42,7 @@ export default function App() {
   const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null);
   const [isScanModalOpen, setIsScanModalOpen] = useState<boolean>(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+  const [scanToast, setScanToast] = useState<string | null>(null);
 
   // Determine dominant unit category
   const primaryUnit = products[0]?.unit || 'g';
@@ -128,6 +129,10 @@ export default function App() {
   // Handle scanned AI camera output
   const handleScannedOffer = (scannedData: Partial<ProductOffer>) => {
     setHasStarted(true);
+    const methodTag = scannedData.scannedByMethod || 'AI Vision Scan';
+    setScanToast(`✨ Extracted via ${methodTag}: ${scannedData.name || 'Item'} ($${scannedData.price?.toFixed(2)}, ${scannedData.size} ${scannedData.unit})`);
+    setTimeout(() => setScanToast(null), 5000);
+
     if (activeScanIndex !== null && products[activeScanIndex]) {
       const target = products[activeScanIndex];
       handleUpdateProduct({
@@ -146,6 +151,7 @@ export default function App() {
         dealType: 'none',
         dealValue: 0,
         storeName: scannedData.storeName || '',
+        scannedByMethod: scannedData.scannedByMethod,
       };
       setProducts([...products, newOffer]);
     }
@@ -210,6 +216,23 @@ export default function App() {
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-3 sm:px-4 py-3 space-y-3">
+        {/* Scan Feedback Banner */}
+        {scanToast && (
+          <div className="p-3 bg-indigo-900 text-white rounded-2xl text-xs font-bold shadow-lg border border-indigo-700 flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>{scanToast}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setScanToast(null)}
+              className="text-slate-300 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-indigo-800"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Quick Presets Row - shown at start before user begins comparing */}
         {!hasStarted && (
           <CategoryPresets onSelectPreset={handleSelectPreset} />

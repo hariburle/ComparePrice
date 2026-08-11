@@ -85,6 +85,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 : `#${priceRank} Rank`}
             </span>
           )}
+
+          {offer.scannedByMethod && (
+            <span
+              className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1"
+              title={`Extracted via ${offer.scannedByMethod}`}
+            >
+              <Sparkles className="w-3 h-3 text-indigo-500 shrink-0" />
+              <span>{offer.scannedByMethod}</span>
+            </span>
+          )}
         </div>
 
         {/* Card Actions */}
