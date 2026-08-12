@@ -191,11 +191,11 @@ export default function App() {
               id="header-history-btn"
               type="button"
               onClick={() => setIsHistoryModalOpen(true)}
-              className="p-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+              className="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
               title="Saved Comparisons"
             >
               <History className="w-3.5 h-3.5 text-amber-400" />
-              <span>Saved</span>
+              <span className="hidden sm:inline">Saved</span>
             </button>
 
             <button
@@ -205,11 +205,11 @@ export default function App() {
                 setActiveScanIndex(null);
                 setIsScanModalOpen(true);
               }}
-              className="p-1.5 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+              className="p-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
               title="Scan Tag with AI"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>AI Scan</span>
+              <span className="hidden sm:inline">AI Scan</span>
             </button>
           </div>
         </div>
