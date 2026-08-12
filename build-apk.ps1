@@ -30,14 +30,40 @@ if (!(Test-Path $EnvFile) -and !(Test-Path $EnvLocalFile)) {
     Write-Host "[+] Found environment file for build secrets." -ForegroundColor Green
 }
 
-# 2. Check Node.js and npm
-Write-Host "`n[1/6] Checking prerequisites..." -ForegroundColor Header
+# 2. Check Node.js, npm, and Android SDK (ANDROID_HOME)
+Write-Host "`n[1/6] Checking prerequisites..." -ForegroundColor Cyan
 if (-not (Get-Command "npm" -ErrorAction SilentlyContinue)) {
     Write-Error "npm is not installed or not in PATH. Please install Node.js."
 }
 
+# Auto-detect ANDROID_HOME if not already set
+if ([string]::IsNullOrEmpty($env:ANDROID_HOME)) {
+    Write-Host "    ANDROID_HOME is not set. Searching for standard Android SDK location..." -ForegroundColor Yellow
+    $DefaultPaths = @(
+        "$env:LOCALAPPDATA\Android\Sdk",
+        "$env:USERPROFILE\AppData\Local\Android\Sdk",
+        "C:\Android\sdk"
+    )
+    
+    foreach ($Path in $DefaultPaths) {
+        if (Test-Path $Path) {
+            $env:ANDROID_HOME = $Path
+            Write-Host "    Found Android SDK at: $Path" -ForegroundColor Green
+            Write-Host "    Temporarily set ANDROID_HOME environment variable." -ForegroundColor Green
+            break
+        }
+    }
+}
+
+if ([string]::IsNullOrEmpty($env:ANDROID_HOME)) {
+    Write-Warning "ANDROID_HOME is not set and could not be auto-detected in standard locations."
+    Write-Host "    Please ensure Android SDK is installed and ANDROID_HOME is configured." -ForegroundColor Yellow
+} else {
+    Write-Host "    Android SDK Location (ANDROID_HOME): $env:ANDROID_HOME" -ForegroundColor Green
+}
+
 # 3. Check / Install Capacitor dependencies
-Write-Host "`n[2/6] Ensuring Capacitor dependencies are installed..." -ForegroundColor Header
+Write-Host "`n[2/6] Ensuring Capacitor dependencies are installed..." -ForegroundColor Cyan
 if (!(Test-Path "node_modules/@capacitor/core")) {
     Write-Host "    Installing Capacitor CLI and Android runtime..." -ForegroundColor Yellow
     npm install @capacitor/core @capacitor/cli @capacitor/android --save-dev
@@ -46,7 +72,7 @@ if (!(Test-Path "node_modules/@capacitor/core")) {
 }
 
 # 4. Build Vite Static Assets
-Write-Host "`n[3/6] Building static web application (dist)..." -ForegroundColor Header
+Write-Host "`n[3/6] Building static web application (dist)..." -ForegroundColor Cyan
 npm run build
 
 if (!(Test-Path "dist")) {
@@ -54,7 +80,7 @@ if (!(Test-Path "dist")) {
 }
 
 # 5. Initialize Android Platform if needed
-Write-Host "`n[4/6] Setting up Android platform..." -ForegroundColor Header
+Write-Host "`n[4/6] Setting up Android platform..." -ForegroundColor Cyan
 if (!(Test-Path "android")) {
     Write-Host "    Adding Android platform to Capacitor project..." -ForegroundColor Yellow
     npx cap add android
@@ -63,11 +89,11 @@ if (!(Test-Path "android")) {
 }
 
 # 6. Sync Web Assets to Android Project
-Write-Host "`n[5/6] Syncing web assets to Android native project..." -ForegroundColor Header
+Write-Host "`n[5/6] Syncing web assets to Android native project..." -ForegroundColor Cyan
 npx cap sync android
 
 # 7. Compile Android APK using Gradle
-Write-Host "`n[6/6] Compiling Android APK via Gradle..." -ForegroundColor Header
+Write-Host "`n[6/6] Compiling Android APK via Gradle..." -ForegroundColor Cyan
 Set-Location android
 
 if ($IsWindows -or $env:OS -like "*Windows*") {
@@ -83,12 +109,15 @@ if ($IsWindows -or $env:OS -like "*Windows*") {
 
 Set-Location ..
 
-$ApkPath = "android\app\build\outputs\apk\debug\app-debug.apk"
+$ApkPath = "android/app/build/outputs/apk/debug/app-debug.apk"
 if (Test-Path $ApkPath) {
+    Copy-Item -Path $ApkPath -Destination "Unit_Price_Compare.apk" -Force
     Write-Host "`n==========================================" -ForegroundColor Green
     Write-Host " SUCCESS! APK Build Completed Successfully " -ForegroundColor Green
     Write-Host " APK File Output Path:" -ForegroundColor Green
     Write-Host " $(Resolve-Path $ApkPath)" -ForegroundColor Yellow
+    Write-Host " Copied APK to root directory as:" -ForegroundColor Green
+    Write-Host " Unit_Price_Compare.apk" -ForegroundColor Yellow
     Write-Host "==========================================" -ForegroundColor Green
 } else {
     Write-Host "`n[!] Gradle process finished. Check android/app/build/outputs/apk/ for generated APK." -ForegroundColor Yellow
