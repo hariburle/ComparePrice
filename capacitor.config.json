@@ -1,0 +1,8 @@
+{
+  "appId": "com.unitpricecompare.app",
+  "appName": "Unit Price Compare",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
