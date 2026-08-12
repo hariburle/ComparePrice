@@ -182,13 +182,13 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
 
       {/* Visual Unit Price Comparison Bar Chart */}
       <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 gap-1.5">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
             <Award className="w-4 h-4 text-indigo-600" />
             <span>Price Comparison</span> ({getReferenceBaseLabel(referenceBase)})
           </h4>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               id="quick-save-comparison-btn"
               type="button"

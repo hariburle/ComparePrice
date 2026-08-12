@@ -8,6 +8,7 @@ import { CategoryPresets } from './components/CategoryPresets';
 import { AIScanModal } from './components/AIScanModal';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { CATEGORY_PRESETS } from './config/presets';
 import {
   Scale,
   Plus,
@@ -25,21 +26,8 @@ export default function App() {
   const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
-  // Initial offer: start with 1 item
-  const [products, setProducts] = useState<ProductOffer[]>([
-    {
-      id: 'p1',
-      name: 'Standard Box (450g)',
-      price: 4.49,
-      quantity: 1,
-      size: 450,
-      unit: 'g',
-      packCount: 1,
-      dealType: 'none',
-      dealValue: 0,
-      storeName: 'Local Grocery',
-    },
-  ]);
+  // Initial offer: start with empty list
+  const [products, setProducts] = useState<ProductOffer[]>([]);
 
   const [referenceBase, setReferenceBase] = useState<ReferenceBase>('100g');
   const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null);
@@ -81,7 +69,10 @@ export default function App() {
   // Remove product option
   const handleRemoveProduct = (id: string) => {
     setHasStarted(true);
-    if (products.length <= 1) return;
+    if (products.length <= 1) {
+      setProducts([]);
+      return;
+    }
     setProducts(products.filter((p) => p.id !== id));
   };
 
@@ -103,19 +94,7 @@ export default function App() {
   // Reset calculator
   const handleReset = () => {
     setHasStarted(false);
-    setProducts([
-      {
-        id: 'p1',
-        name: 'Item 1',
-        price: 0,
-        quantity: 1,
-        size: 100,
-        unit: 'g',
-        packCount: 1,
-        dealType: 'none',
-        dealValue: 0,
-      },
-    ]);
+    setProducts([]);
   };
 
   // Load preset scenario
@@ -255,96 +234,154 @@ export default function App() {
           </div>
         )}
 
-        {/* Quick Presets Row - shown at start before user begins comparing */}
-        {!hasStarted && (
-          <CategoryPresets onSelectPreset={handleSelectPreset} />
-        )}
+        {products.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 text-center shadow-xs flex flex-col items-center max-w-xl mx-auto my-6 space-y-6">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-2xs">
+              <Scale className="w-8 h-8 stroke-[1.5]" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Compare Prices & Save Money
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
+                Compare unit prices of different sizes, package weights, or deals to get the best value instantly.
+              </p>
+            </div>
 
-        {/* Comparison Winner & Matrix Summary */}
-        <ComparisonSummary
-          comparisons={comparisons}
-          products={products}
-          referenceBase={referenceBase}
-          onReferenceBaseChange={(base) => setReferenceBase(base)}
-          unitCategory={unitCategory}
-          onOpenSavedHistory={() => setIsHistoryModalOpen(true)}
-        />
-
-        {/* Offers Header Control */}
-        <div className="flex items-center justify-between pt-1">
-          <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-            Compare Items ({products.length})
-          </h2>
-
-          <div className="flex items-center gap-2">
-            {hasStarted && (
+            <div className="w-full space-y-3 pt-2">
               <button
-                id="show-presets-btn"
+                id="empty-add-btn"
                 type="button"
-                onClick={() => setHasStarted(false)}
-                className="p-1 px-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors flex items-center gap-1"
+                onClick={handleAddProduct}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.99] cursor-pointer"
               >
-                <LayoutGrid className="w-3 h-3 text-indigo-500" /> Presets
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Add Your First Item</span>
               </button>
-            )}
-            <button
-              id="reset-offers-btn"
-              type="button"
-              onClick={handleReset}
-              className="p-1 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors flex items-center gap-1"
-            >
-              <RotateCcw className="w-3 h-3" /> Reset
-            </button>
+
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink mx-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">or pick a preset</span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
+
+              {/* Preset buttons layout inside empty card */}
+              <div className="grid grid-cols-2 gap-2">
+                {CATEGORY_PRESETS.map((preset) => {
+                  const Icon = preset.icon;
+                  return (
+                    <button
+                      key={preset.id}
+                      id={`empty-preset-btn-${preset.id}`}
+                      type="button"
+                      onClick={() => {
+                        handleSelectPreset(preset.offers, preset.referenceBase, preset.title);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${preset.color}`}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{preset.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Quick Presets Row - shown at start before user begins comparing */}
+            {products.length > 0 && !hasStarted && (
+              <CategoryPresets onSelectPreset={handleSelectPreset} />
+            )}
 
-        {/* Product Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
-          {products.map((offer, idx) => {
-            const comp = comparisons.find((c) => c.productId === offer.id);
+            {/* Comparison Winner & Matrix Summary */}
+            <ComparisonSummary
+              comparisons={comparisons}
+              products={products}
+              referenceBase={referenceBase}
+              onReferenceBaseChange={(base) => setReferenceBase(base)}
+              unitCategory={unitCategory}
+              onOpenSavedHistory={() => setIsHistoryModalOpen(true)}
+            />
 
-            return (
-              <ProductCard
-                key={offer.id}
-                offer={offer}
-                index={idx}
-                referenceBase={referenceBase}
-                isBestValue={comp?.isBestValue || false}
-                isWorstValue={comp?.isWorstValue || false}
-                priceRank={comp?.priceRank || idx + 1}
-                totalOffersCount={products.length}
-                savingsPercentage={comp?.savingsPercentageVsWorst || 0}
-                onUpdate={handleUpdateProduct}
-                onRemove={() => handleRemoveProduct(offer.id)}
-                onDuplicate={() => handleDuplicateProduct(idx)}
-                onScanClick={() => {
-                  setActiveScanIndex(idx);
-                  setIsScanModalOpen(true);
-                }}
-              />
-            );
-          })}
+            {/* Offers Header Control */}
+            <div className="flex items-center justify-between pt-1">
+              <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                Compare Items ({products.length})
+              </h2>
 
-          {/* Add Offer Card in Grid */}
-          <button
-            id="add-offer-btn"
-            type="button"
-            onClick={handleAddProduct}
-            className="group relative bg-white/90 hover:bg-emerald-50/60 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-5 transition-all duration-200 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[220px] gap-2 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-[0.99] shadow-xs hover:shadow-md cursor-pointer"
-          >
-            <div className="w-11 h-11 rounded-full bg-emerald-100/80 group-hover:bg-emerald-500 text-emerald-700 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-              <Plus className="w-5 h-5 stroke-[2.5]" />
+              <div className="flex items-center gap-2">
+                {hasStarted && (
+                  <button
+                    id="show-presets-btn"
+                    type="button"
+                    onClick={() => setHasStarted(false)}
+                    className="p-1 px-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors flex items-center gap-1"
+                  >
+                    <LayoutGrid className="w-3 h-3 text-indigo-500" /> Presets
+                  </button>
+                )}
+                <button
+                  id="reset-offers-btn"
+                  type="button"
+                  onClick={handleReset}
+                  className="p-1 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" /> Reset
+                </button>
+              </div>
             </div>
-            <div>
-              <span className="block font-black text-xs sm:text-sm text-slate-800 group-hover:text-emerald-950">
-                Add Another Item / Offer
-              </span>
-              <span className="block text-[11px] sm:text-xs text-slate-500 group-hover:text-emerald-700 mt-0.5">
-                Compare price per unit for another option
-              </span>
+
+            {/* Product Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+              {products.map((offer, idx) => {
+                const comp = comparisons.find((c) => c.productId === offer.id);
+
+                return (
+                  <ProductCard
+                    key={offer.id}
+                    offer={offer}
+                    index={idx}
+                    referenceBase={referenceBase}
+                    isBestValue={comp?.isBestValue || false}
+                    isWorstValue={comp?.isWorstValue || false}
+                    priceRank={comp?.priceRank || idx + 1}
+                    totalOffersCount={products.length}
+                    savingsPercentage={comp?.savingsPercentageVsWorst || 0}
+                    onUpdate={handleUpdateProduct}
+                    onRemove={() => handleRemoveProduct(offer.id)}
+                    onDuplicate={() => handleDuplicateProduct(idx)}
+                    onScanClick={() => {
+                      setActiveScanIndex(idx);
+                      setIsScanModalOpen(true);
+                    }}
+                  />
+                );
+              })}
+
+              {/* Add Offer Card in Grid */}
+              <button
+                id="add-offer-btn"
+                type="button"
+                onClick={handleAddProduct}
+                className="group relative bg-white/90 hover:bg-emerald-50/60 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-5 transition-all duration-200 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[220px] gap-2 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-[0.99] shadow-xs hover:shadow-md cursor-pointer"
+              >
+                <div className="w-11 h-11 rounded-full bg-emerald-100/80 group-hover:bg-emerald-500 text-emerald-700 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
+                  <Plus className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <span className="block font-black text-xs sm:text-sm text-slate-800 group-hover:text-emerald-950">
+                    Add Another Item / Offer
+                  </span>
+                  <span className="block text-[11px] sm:text-xs text-slate-500 group-hover:text-emerald-700 mt-0.5">
+                    Compare price per unit for another option
+                  </span>
+                </div>
+              </button>
             </div>
-          </button>
-        </div>
+          </>
+        )}
       </main>
 
       {/* AI Shelf Tag Scan Modal */}
