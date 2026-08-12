@@ -1,6 +1,6 @@
 {
   "name": "Unit Price Compare",
   "description": "Instant multi-product unit price comparison, weight/volume unit conversions, deal rankings, and bargain hunting tools optimized for mobile and Android layouts.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

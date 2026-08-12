@@ -1,6 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ProductOffer, UnitType } from '../types';
-import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2, Bug, Image } from 'lucide-react';
+import {
+  Camera,
+  Upload,
+  Sparkles,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Bug,
+  Image,
+  SwitchCamera,
+  Video,
+} from 'lucide-react';
 import { isDebugEnabled, setDebugMode } from '../config/debug';
 
 interface AIScanModalProps {
@@ -22,16 +34,52 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   const [debugActive, setDebugActive] = useState<boolean>(isDebugEnabled());
   const [customApiKey, setCustomApiKey] = useState<string>('');
 
+  // Live Camera State
+  const [isLiveCameraActive, setIsLiveCameraActive] = useState<boolean>(false);
+  const [isStartingCamera, setIsStartingCamera] = useState<boolean>(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
   const clickCountRef = useRef<number>(0);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
-    setCustomApiKey(savedKey);
-  }, []);
+    if (isOpen) {
+      const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
+      setCustomApiKey(savedKey);
+    }
+  }, [isOpen]);
+
+  const stopLiveCamera = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    setIsLiveCameraActive(false);
+    setIsStartingCamera(false);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopLiveCamera();
+      setImagePreview(null);
+      setError(null);
+      setCameraError(null);
+    }
+    return () => {
+      stopLiveCamera();
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleCloseModal = () => {
+    stopLiveCamera();
+    onClose();
+  };
 
   const activeApiKey = customApiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || '';
 
@@ -55,8 +103,95 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
       setImagePreview(reader.result as string);
       setError(null);
       setScanStatus(null);
+      setCameraError(null);
+      stopLiveCamera();
     };
     reader.readAsDataURL(file);
+  };
+
+  const startLiveCamera = async (overrideFacingMode?: 'environment' | 'user') => {
+    const targetMode = overrideFacingMode || facingMode;
+    setIsStartingCamera(true);
+    setCameraError(null);
+    setError(null);
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Live camera access (getUserMedia) is not supported in this browser context.');
+      }
+
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: targetMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      mediaStreamRef.current = stream;
+      setIsLiveCameraActive(true);
+      setIsStartingCamera(false);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch((err) => console.warn('Video play error:', err));
+        }
+      }, 150);
+    } catch (err: any) {
+      console.error('Failed to start live camera:', err);
+      stopLiveCamera();
+
+      let errMsg = 'Could not access live camera.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errMsg = 'Camera permission was denied. Please allow camera permissions in browser site settings.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errMsg = 'No physical camera detected on this device.';
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+
+      setCameraError(errMsg);
+    }
+  };
+
+  const handleFlipCamera = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    startLiveCamera(nextMode);
+  };
+
+  const capturePhotoFromLiveCamera = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (facingMode === 'user') {
+      ctx.translate(width, 0);
+      ctx.scale(-1, 1);
+    }
+
+    ctx.drawImage(video, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    setImagePreview(dataUrl);
+    setMimeType('image/jpeg');
+    setError(null);
+    setScanStatus(null);
+    stopLiveCamera();
   };
 
   const parseWithClientSideGemini = async (apiKey: string, base64Data: string, mime: string) => {
@@ -117,7 +252,7 @@ Guidance:
       return JSON.parse(jsonMatch[0]);
     };
 
-    const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+    const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
     let lastError: Error | null = null;
 
     for (const modelName of candidateModels) {
@@ -136,11 +271,9 @@ Guidance:
     const result = await recognize(base64Data, 'eng');
     const text = result.data.text || '';
 
-    // Extract price ($X.XX or X.XX)
     const priceMatch = text.match(/\$\s*(\d+\.\d{2})|(\d+\.\d{2})/);
     const price = priceMatch ? parseFloat(priceMatch[1] || priceMatch[2]) : 4.99;
 
-    // Extract size & unit
     const sizeMatch = text.match(/(\d+(?:\.\d+)?)\s*(oz|lb|g|kg|gal|ml|l|loads|sheets|ct|count)/i);
     const size = sizeMatch ? parseFloat(sizeMatch[1]) : 1;
     let unit: UnitType = 'oz';
@@ -151,7 +284,6 @@ Guidance:
       }
     }
 
-    // Extract product name from non-empty lines
     const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 2);
     const name = lines[0] ? lines[0].slice(0, 35) : 'Scanned Store Tag';
 
@@ -174,10 +306,10 @@ Guidance:
     setScanStatus('Connecting to scanner...');
 
     try {
-      const apiKey = activeApiKey;
+      const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
+      const apiKey = customApiKey.trim() || savedKey.trim() || activeApiKey;
       const isGitHubPages = window.location.hostname.endsWith('.github.io');
 
-      // 1. Client-side Gemini if API Key is available
       if (apiKey) {
         try {
           setScanStatus('Scanning shelf tag with Gemini AI...');
@@ -190,32 +322,44 @@ Guidance:
         }
       }
 
-      // 2. Try backend API endpoint (only if NOT on static host like github.io and no client key)
-      if (!isGitHubPages) {
-        try {
-          setScanStatus('Scanning shelf tag with Gemini AI...');
-          const response = await fetch('/api/scan-label', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              imageBase64: imagePreview,
-              mimeType,
-            }),
-          });
+      // Try backend endpoints (local relative first, then remote hosted Cloud Run server for mobile APKs)
+      const endpoints = ['/api/scan-label'];
+      // If in APK or local origin, add the Cloud Run hosted server URL as a fallback endpoint
+      if (
+        window.location.protocol === 'file:' ||
+        window.location.protocol === 'capacitor:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+      ) {
+        endpoints.push('https://ais-dev-a4rlkvkyfegjfuv35v5gbz-712313410791.us-east1.run.app/api/scan-label');
+      }
 
-          if (response.ok) {
-            const resData = await response.json();
-            if (resData?.success) {
-              applyScannedData(resData.data, 'Gemini AI Vision');
-              return;
+      if (!isGitHubPages) {
+        for (const endpoint of endpoints) {
+          try {
+            setScanStatus('Scanning shelf tag with Gemini AI...');
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                imageBase64: imagePreview,
+                mimeType,
+              }),
+            });
+
+            if (response.ok) {
+              const resData = await response.json();
+              if (resData?.success) {
+                applyScannedData(resData.data, 'Gemini AI Vision');
+                return;
+              }
             }
+          } catch (err: any) {
+            console.warn(`Backend API scan failed at endpoint ${endpoint}:`, err);
           }
-        } catch (err: any) {
-          console.warn('Backend API scan failed or unavailable:', err);
         }
       }
 
-      // 3. Pure browser WebAssembly OCR (Tesseract.js) fallback
       try {
         setScanStatus('Scanning with Browser WebAssembly OCR...');
         const ocrScanned = await parseWithTesseract(imagePreview);
@@ -225,7 +369,6 @@ Guidance:
         console.error('Tesseract OCR error:', ocrErr);
       }
 
-      // 4. Fallback demo values if all else fails
       setScanStatus('Pre-populating demo values...');
       setTimeout(() => {
         applyScannedData(
@@ -258,7 +401,7 @@ Guidance:
         brand: scanned.brand || '',
         scannedByMethod: method,
       });
-      onClose();
+      handleCloseModal();
       setScanStatus(null);
     }, 1200);
   };
@@ -286,7 +429,7 @@ Guidance:
         {/* Close Button */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleCloseModal}
           className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"
         >
           <X className="w-5 h-5" />
@@ -311,67 +454,150 @@ Guidance:
           Scan Store Price Tag
         </h3>
         <p className="text-xs text-slate-500">
-          Take a photo with your camera or select from gallery. Gemini AI will extract price, size, and unit automatically.
+          Capture a store tag directly using your live camera or pick a picture from your library.
         </p>
 
-        {/* Image Capture & Upload Options */}
-        {imagePreview ? (
+        {/* Live Camera Viewfinder Screen */}
+        {isLiveCameraActive ? (
+          <div className="space-y-3 bg-slate-900 rounded-2xl p-3 text-white overflow-hidden shadow-inner">
+            <div className="relative rounded-xl overflow-hidden bg-black flex items-center justify-center min-h-[220px]">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-56 object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+              />
+              {/* Focus Reticle Overlay */}
+              <div className="absolute inset-0 border-2 border-indigo-400/40 rounded-xl pointer-events-none flex items-center justify-center">
+                <div className="w-48 h-28 border-2 border-dashed border-indigo-400/90 rounded-lg bg-indigo-500/10 flex items-center justify-center text-[10px] text-indigo-200 font-medium shadow-sm">
+                  Align Shelf Tag Here
+                </div>
+              </div>
+            </div>
+
+            {/* Live Camera Controls */}
+            <div className="flex items-center justify-between px-2 pt-1">
+              <button
+                type="button"
+                onClick={stopLiveCamera}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold transition-colors"
+              >
+                Close Viewfinder
+              </button>
+
+              <button
+                type="button"
+                onClick={capturePhotoFromLiveCamera}
+                className="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg ring-4 ring-indigo-400/30 transition-all transform active:scale-95"
+                title="Snap Photo"
+              >
+                <Camera className="w-6 h-6" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFlipCamera}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                title="Switch Camera Front/Back"
+              >
+                <SwitchCamera className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        ) : isStartingCamera ? (
+          <div className="border border-indigo-200 bg-indigo-50/50 rounded-2xl p-8 text-center space-y-2">
+            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
+            <div className="text-xs font-bold text-indigo-900">Starting Live Camera...</div>
+            <div className="text-[11px] text-slate-500">Please allow camera permissions if prompted</div>
+          </div>
+        ) : imagePreview ? (
+          /* Image Captured Preview Screen */
           <div className="border border-slate-200 bg-slate-50 rounded-2xl p-4 text-center space-y-3">
             <img
               src={imagePreview}
               alt="Shelf tag preview"
               className="max-h-48 mx-auto rounded-xl object-contain border border-slate-200"
             />
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                onClick={() => startLiveCamera('environment')}
+                className="px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
               >
-                <Camera className="w-3.5 h-3.5" /> Retake Photo
+                <Video className="w-3.5 h-3.5" /> Retake with Live Camera
               </button>
               <button
                 type="button"
                 onClick={() => galleryInputRef.current?.click()}
                 className="px-3 py-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
               >
-                <Image className="w-3.5 h-3.5" /> Choose Other
+                <Image className="w-3.5 h-3.5" /> Choose Other Photo
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="p-5 border-2 border-dashed border-indigo-300 hover:border-indigo-600 bg-indigo-50/50 hover:bg-indigo-50/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <Camera className="w-6 h-6" />
-              </div>
-              <div className="text-xs font-bold text-indigo-900">
-                Open Camera
-              </div>
-              <div className="text-[10px] text-slate-500">
-                Snap tag photo directly
-              </div>
-            </button>
+          /* Selection Options Screen */
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => startLiveCamera('environment')}
+                className="p-5 border-2 border-dashed border-indigo-400 hover:border-indigo-600 bg-indigo-50/60 hover:bg-indigo-50 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group shadow-sm"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Video className="w-6 h-6" />
+                </div>
+                <div className="text-xs font-bold text-indigo-900">
+                  Open Live Camera
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Viewfinder & snap tag live
+                </div>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => galleryInputRef.current?.click()}
-              className="p-5 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-slate-800 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div className="text-xs font-bold text-slate-900">
-                Choose Photo
-              </div>
-              <div className="text-[10px] text-slate-500">
-                Upload from Gallery
-              </div>
-            </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="p-5 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-slate-800 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Upload className="w-6 h-6" />
+                </div>
+                <div className="text-xs font-bold text-slate-900">
+                  Choose Photo
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Upload from Gallery
+                </div>
+              </button>
+            </div>
+
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="text-[11px] text-indigo-600 hover:text-indigo-800 hover:underline font-medium inline-flex items-center gap-1"
+              >
+                <Camera className="w-3 h-3" /> Or launch native device photo camera picker
+              </button>
+            </div>
+          </div>
+        )}
+
+        {cameraError && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="font-semibold">{cameraError}</div>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="text-[11px] font-bold text-indigo-700 underline"
+              >
+                Click here to pick photo from device
+              </button>
+            </div>
           </div>
         )}
 
@@ -415,7 +641,7 @@ Guidance:
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseModal}
             className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
           >
             Cancel
@@ -447,4 +673,3 @@ Guidance:
     </div>
   );
 };
-

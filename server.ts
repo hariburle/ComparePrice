@@ -7,6 +7,17 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // CORS middleware for mobile APK / cross-origin requests
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // JSON Body parser for image uploads (up to 10MB base64)
   app.use(express.json({ limit: '10mb' }));
 

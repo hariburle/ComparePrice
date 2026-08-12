@@ -131,7 +131,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </div>
 
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            AI Vision scans store price tags directly. If you don't use a built-in key in your environment, you can optionally paste your free Google AI Studio key here.
+            AI Vision scans store price tags directly. When using an Android APK offline or standalone, paste a free Google AI Studio key here to run Gemini directly on your phone without a backend server.
           </p>
 
           <input
