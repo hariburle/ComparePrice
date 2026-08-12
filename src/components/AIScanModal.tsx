@@ -149,8 +149,8 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
       stopLiveCamera();
 
       let errMsg = 'Could not access live camera.';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errMsg = 'Camera permission was denied. Please allow camera permissions in browser site settings.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.message?.includes('Permission')) {
+        errMsg = 'Camera permission was denied. Inside native apps or certain browsers, you can use the "System Camera" option instead, which bypasses these permission restrictions!';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errMsg = 'No physical camera detected on this device.';
       } else if (err.message) {
@@ -538,48 +538,57 @@ Guidance:
           </div>
         ) : (
           /* Selection Options Screen */
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="w-full p-4 border-2 border-indigo-500 hover:border-indigo-600 bg-indigo-50/80 hover:bg-indigo-100/80 rounded-2xl text-left transition-all flex items-center gap-4 group shadow-sm"
+            >
+              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
+                <Camera className="w-6 h-6" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold text-indigo-950 flex items-center gap-1.5">
+                  Use System Camera
+                  <span className="text-[10px] bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded-full font-extrabold uppercase">Recommended</span>
+                </div>
+                <div className="text-xs text-indigo-700">
+                  Runs your phone's native camera app. 100% reliable, no permission bugs.
+                </div>
+              </div>
+            </button>
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => startLiveCamera('environment')}
-                className="p-5 border-2 border-dashed border-indigo-400 hover:border-indigo-600 bg-indigo-50/60 hover:bg-indigo-50 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group shadow-sm"
+                className="p-4 border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/60 hover:bg-indigo-50/30 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
               >
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                  <Video className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Video className="w-5 h-5" />
                 </div>
-                <div className="text-xs font-bold text-indigo-900">
-                  Open Live Camera
+                <div className="text-xs font-bold text-slate-850">
+                  Web Viewfinder
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Viewfinder & snap tag live
+                  Scan live in-app
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => galleryInputRef.current?.click()}
-                className="p-5 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
+                className="p-4 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
               >
-                <div className="w-12 h-12 rounded-2xl bg-slate-800 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                  <Upload className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-slate-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Upload className="w-5 h-5" />
                 </div>
-                <div className="text-xs font-bold text-slate-900">
-                  Choose Photo
+                <div className="text-xs font-bold text-slate-850">
+                  Pick from Gallery
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Upload from Gallery
+                  Upload file or photo
                 </div>
-              </button>
-            </div>
-
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                className="text-[11px] text-indigo-600 hover:text-indigo-800 hover:underline font-medium inline-flex items-center gap-1"
-              >
-                <Camera className="w-3 h-3" /> Or launch native device photo camera picker
               </button>
             </div>
           </div>
