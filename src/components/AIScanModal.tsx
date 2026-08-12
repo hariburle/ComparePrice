@@ -538,59 +538,38 @@ Guidance:
           </div>
         ) : (
           /* Selection Options Screen */
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="w-full p-4 border-2 border-indigo-500 hover:border-indigo-600 bg-indigo-50/80 hover:bg-indigo-100/80 rounded-2xl text-left transition-all flex items-center gap-4 group shadow-sm"
+              onClick={() => startLiveCamera('environment')}
+              className="p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
             >
-              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
-                <Camera className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <Video className="w-5 h-5" />
               </div>
-              <div className="space-y-0.5">
-                <div className="text-sm font-bold text-indigo-950 flex items-center gap-1.5">
-                  Use System Camera
-                  <span className="text-[10px] bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded-full font-extrabold uppercase">Recommended</span>
-                </div>
-                <div className="text-xs text-indigo-700">
-                  Runs your phone's native camera app. 100% reliable, no permission bugs.
-                </div>
+              <div className="text-xs font-bold text-slate-850">
+                Live Camera
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Scan live in-app
               </div>
             </button>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => startLiveCamera('environment')}
-                className="p-4 border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/60 hover:bg-indigo-50/30 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                  <Video className="w-5 h-5" />
-                </div>
-                <div className="text-xs font-bold text-slate-850">
-                  Live Camera
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  Scan live in-app
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => galleryInputRef.current?.click()}
-                className="p-4 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div className="text-xs font-bold text-slate-850">
-                  Pick from Gallery
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  Upload file or photo
-                </div>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="p-4 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="text-xs font-bold text-slate-850">
+                Pick from Gallery
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Upload file or photo
+              </div>
+            </button>
           </div>
         )}
 

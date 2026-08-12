@@ -81,11 +81,15 @@ if (!(Test-Path "dist")) {
 
 # 5. Initialize Android Platform if needed
 Write-Host "`n[4/6] Setting up Android platform..." -ForegroundColor Cyan
-if (!(Test-Path "android")) {
+if (!(Test-Path "android") -or !(Test-Path "android/gradlew.bat")) {
+    if (Test-Path "android") {
+        Write-Host "    'android' folder exists but is incomplete (missing gradlew.bat). Recreating platform..." -ForegroundColor Yellow
+        Remove-Item -Path "android" -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Write-Host "    Adding Android platform to Capacitor project..." -ForegroundColor Yellow
     npx cap add android
 } else {
-    Write-Host "[+] Existing 'android' folder detected." -ForegroundColor Green
+    Write-Host "[+] Existing valid 'android' folder detected." -ForegroundColor Green
 }
 
 # Ensure AndroidManifest.xml includes Camera and Storage permissions
@@ -130,8 +134,11 @@ Set-Location android
 if ($IsWindows -or $env:OS -like "*Windows*") {
     if (Test-Path ".\gradlew.bat") {
         .\gradlew.bat assembleDebug
+    } elseif (Test-Path ".\gradlew") {
+        .\gradlew assembleDebug
     } else {
-        gradlew assembleDebug
+        Write-Warning "Could not find gradlew.bat, attempting global gradle command..."
+        gradle assembleDebug
     }
 } else {
     chmod +x gradlew
