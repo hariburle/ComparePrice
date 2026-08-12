@@ -208,13 +208,15 @@ export function compareProductOffers(
   const validPrices = rawResults.map((r) => r.unitPrice).filter((p) => p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
   const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
+  const hasPriceDiff = maxPrice - minPrice > 0.00001;
 
   // Rank products
   const sorted = [...rawResults].sort((a, b) => a.unitPrice - b.unitPrice);
 
   return rawResults.map((res) => {
     const isMin = res.unitPrice > 0 && Math.abs(res.unitPrice - minPrice) < 0.00001;
-    const isMax = res.unitPrice > 0 && Math.abs(res.unitPrice - maxPrice) < 0.00001 && validPrices.length > 1;
+    // isMax is only true if there is an actual price difference between items
+    const isMax = res.unitPrice > 0 && hasPriceDiff && Math.abs(res.unitPrice - maxPrice) < 0.00001;
     
     // Price rank (1-indexed)
     const rankIndex = sorted.findIndex((s) => s.productId === res.productId);
@@ -222,7 +224,7 @@ export function compareProductOffers(
 
     // Savings percentage compared to the most expensive item
     let savingsPercentage = 0;
-    if (maxPrice > 0 && res.unitPrice > 0) {
+    if (maxPrice > 0 && res.unitPrice > 0 && hasPriceDiff) {
       savingsPercentage = Math.round(((maxPrice - res.unitPrice) / maxPrice) * 100);
     }
 

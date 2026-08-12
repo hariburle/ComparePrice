@@ -57,7 +57,7 @@ export default function App() {
     const newId = `p_${Date.now()}`;
     const newProduct: ProductOffer = {
       id: newId,
-      name: `Option ${String.fromCharCode(65 + products.length)}`,
+      name: `Item ${products.length + 1}`,
       price: 0,
       quantity: 1,
       size: products[0]?.size || 100,
@@ -103,7 +103,7 @@ export default function App() {
     setProducts([
       {
         id: 'p1',
-        name: 'Item A',
+        name: 'Item 1',
         price: 0,
         quantity: 1,
         size: 100,
@@ -187,6 +187,17 @@ export default function App() {
 
           <div className="flex items-center gap-1.5">
             <button
+              id="header-reset-btn"
+              type="button"
+              onClick={handleReset}
+              className="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+              title="Reset All Items"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+
+            <button
               id="header-history-btn"
               type="button"
               onClick={() => setIsHistoryModalOpen(true)}
@@ -205,7 +216,7 @@ export default function App() {
                 setIsScanModalOpen(true);
               }}
               className="p-1.5 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
-              title="Scan Tag with Gemini AI"
+              title="Scan Tag with AI"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>AI Scan</span>

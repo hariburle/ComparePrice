@@ -92,7 +92,7 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
     description: 'Hands-free AI computer vision OCR to extract price tag data instantly from shelf labels.',
     features: [
       {
-        name: 'Gemini Vision Tag Scanner',
+        name: 'AI Vision Tag Scanner',
         description: 'Snap or upload a photo of a store shelf tag to auto-detect price, package net weight/volume, and title.',
         icon: 'Camera',
       },

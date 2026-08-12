@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProductOffer, ReferenceBase, SavedComparison, StandardizedComparison, UnitCategory } from '../types';
 import { getReferenceBaseLabel, formatUnitPrice } from '../utils/units';
-import { Trophy, ArrowDownRight, DollarSign, Award, SlidersHorizontal, BookmarkPlus, History, Check } from 'lucide-react';
+import { Trophy, ArrowDownRight, Award, SlidersHorizontal, BookmarkPlus, History, Check } from 'lucide-react';
 
 interface ComparisonSummaryProps {
   comparisons: StandardizedComparison[];
@@ -97,8 +97,9 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
           { base: '100count', label: '$/100 count' },
         ];
 
-  // Maximum unit price for scaling comparison bars
+  const minUnitPrice = Math.min(...validComparisons.map((c) => c.unitPricePerStandardBase));
   const maxUnitPrice = Math.max(...validComparisons.map((c) => c.unitPricePerStandardBase), 0.0001);
+  const isTie = validComparisons.length > 1 && Math.abs(maxUnitPrice - minUnitPrice) < 0.00001;
 
   return (
     <div id="comparison-summary-panel" className="space-y-4">
@@ -107,7 +108,8 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-semibold tracking-wide uppercase text-slate-300">
-            Normalize Unit Metric:
+            <span className="hidden sm:inline">Normalize Unit Metric:</span>
+            <span className="sm:hidden">Compare By:</span>
           </span>
         </div>
 
@@ -140,37 +142,38 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
-                  Winner
+                  {isTie ? 'Tie' : 'Winner'}
                 </span>
                 <span className="text-xs font-semibold text-emerald-100">
-                  Best Unit Price Deal
+                  {isTie ? 'Equal Unit Price' : 'Best Unit Price'}
                 </span>
               </div>
               <h3 className="text-lg font-black tracking-tight mt-0.5 flex flex-wrap items-center gap-2">
-                <span>{bestValue.productName}</span>
-                {winningProduct?.storeName?.trim() && (
+                <span>{isTie ? 'All items cost the same unit price' : bestValue.productName}</span>
+                {!isTie && winningProduct?.storeName?.trim() && (
                   <span className="text-xs font-bold text-amber-200 bg-emerald-800/80 border border-emerald-400/30 px-2 py-0.5 rounded-md">
                     @{winningProduct.storeName.trim()}
                   </span>
                 )}
               </h3>
               <p className="text-xs text-emerald-100 mt-1">
-                At <span className="font-bold text-white">{formatUnitPrice(bestValue.unitPricePerStandardBase)}</span> {getReferenceBaseLabel(referenceBase)}, this is your cheapest offer!
+                At <span className="font-bold text-white">{formatUnitPrice(bestValue.unitPricePerStandardBase)}</span> {getReferenceBaseLabel(referenceBase)}, {isTie ? 'all compared items are equally priced.' : 'cheapest offer!'}
               </p>
             </div>
           </div>
 
-          {worstValue && bestValue.savingsPercentageVsWorst > 0 && (
+          {!isTie && worstValue && bestValue.savingsPercentageVsWorst > 0 && (
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shrink-0 w-full sm:w-auto text-left sm:text-right z-10">
               <div className="text-[11px] text-emerald-100 font-medium">
-                Savings vs. Most Expensive:
+                <span className="hidden sm:inline">Savings vs. Most Expensive:</span>
+                <span className="sm:hidden">vs. Highest Cost:</span>
               </div>
               <div className="text-2xl font-black text-amber-300 flex items-center justify-start sm:justify-end gap-1">
                 <ArrowDownRight className="w-6 h-6" />
                 {bestValue.savingsPercentageVsWorst}% CHEAPER
               </div>
               <div className="text-[11px] text-emerald-100">
-                Saves {formatUnitPrice(dollarSavings)} per {referenceBase}
+                Saves {formatUnitPrice(dollarSavings)}/{referenceBase}
               </div>
             </div>
           )}
@@ -182,7 +185,8 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
         <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
             <Award className="w-4 h-4 text-indigo-600" />
-            Unit Price Comparison Matrix ({getReferenceBaseLabel(referenceBase)})
+            <span className="hidden sm:inline">Price Comparison Breakdown</span>
+            <span className="sm:hidden">Comparison</span> ({getReferenceBaseLabel(referenceBase)})
           </h4>
 
           <div className="flex items-center gap-2">
@@ -205,7 +209,8 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
               ) : (
                 <>
                   <BookmarkPlus className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Save Comparison</span>
+                  <span className="hidden sm:inline">Save Comparison</span>
+                  <span className="sm:hidden">Save</span>
                 </>
               )}
             </button>
@@ -219,7 +224,8 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
                 title="View all saved comparisons"
               >
                 <History className="w-3.5 h-3.5 text-indigo-600" />
-                <span>View Saved</span>
+                <span className="hidden sm:inline">View Saved</span>
+                <span className="sm:hidden">Saved</span>
               </button>
             )}
           </div>
@@ -252,15 +258,23 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
                               @{storeName}
                             </span>
                           )}
-                          {comp.isBestValue && (
+                          {isTie ? (
                             <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
-                              Best
+                              Tied
                             </span>
-                          )}
-                          {comp.isWorstValue && (
-                            <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
-                              Costliest
-                            </span>
+                          ) : (
+                            <>
+                              {comp.isBestValue && (
+                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
+                                  Best
+                                </span>
+                              )}
+                              {comp.isWorstValue && (
+                                <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
+                                  Costliest
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                         <div className="font-bold text-slate-900 shrink-0">
@@ -277,7 +291,9 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
                   <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex items-center">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        comp.isBestValue
+                        isTie
+                          ? 'bg-emerald-500'
+                          : comp.isBestValue
                           ? 'bg-emerald-500'
                           : comp.isWorstValue
                           ? 'bg-rose-400'

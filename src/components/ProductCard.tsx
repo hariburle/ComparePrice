@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ProductOffer, ReferenceBase, UnitType } from '../types';
 import { calculateEffectivePrice, calculateTotalBaseUnits, formatUnitLabel, formatUnitPrice, getReferenceBaseUnitFactor } from '../utils/units';
-import { Trash2, Copy, Sparkles, Tag, ChevronDown, ChevronUp, Store, Package } from 'lucide-react';
+import { Trash2, Copy, Sparkles, Tag, ChevronDown, ChevronUp, Store, Package, Check, Share2, CopyPlus } from 'lucide-react';
+import { formatItemText, copyTextToClipboard, shareItem } from '../utils/share';
+import { isDebugEnabled } from '../config/debug';
 
 interface ProductCardProps {
   offer: ProductOffer;
@@ -33,11 +35,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onScanClick,
 }) => {
   const [showDeals, setShowDeals] = useState<boolean>(offer.dealType !== 'none');
+  const [copiedItem, setCopiedItem] = useState<boolean>(false);
+  const [sharedItem, setSharedItem] = useState<boolean>(false);
 
   const effectivePrice = calculateEffectivePrice(offer);
   const totalBaseUnits = calculateTotalBaseUnits(offer);
   const { factorInBase } = getReferenceBaseUnitFactor(referenceBase);
   const unitPrice = totalBaseUnits > 0 ? (effectivePrice / totalBaseUnits) * factorInBase : 0;
+
+  const handleShare = async () => {
+    const result = await shareItem(offer, referenceBase, isBestValue);
+    if (result === 'copied' || result === 'shared') {
+      setSharedItem(true);
+      setTimeout(() => setSharedItem(false), 2000);
+    }
+  };
+
+  const handleCopyDetails = async () => {
+    const text = formatItemText(offer, referenceBase, isBestValue);
+    const ok = await copyTextToClipboard(text);
+    if (ok) {
+      setCopiedItem(true);
+      setTimeout(() => setCopiedItem(false), 2000);
+    }
+  };
 
   const handleChange = (field: keyof ProductOffer, value: any) => {
     onUpdate({
@@ -68,10 +89,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <span className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 text-white text-xs font-bold">
-            {index + 1}
-          </span>
-          <span className="text-xs font-semibold text-slate-600 tracking-wide uppercase">
-            Option {String.fromCharCode(65 + index)}
+            #{index + 1}
           </span>
 
           {totalOffersCount > 1 && (
@@ -86,7 +104,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           )}
 
-          {offer.scannedByMethod && (
+          {isDebugEnabled() && offer.scannedByMethod && (
             <span
               className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1"
               title={`Extracted via ${offer.scannedByMethod}`}
@@ -99,6 +117,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Card Actions */}
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2"
+            title="Share item details"
+          >
+            {sharedItem ? <Check className="w-3.5 h-3.5 text-indigo-600" /> : <Share2 className="w-3.5 h-3.5 text-indigo-600" />}
+            <span className="hidden sm:inline">{sharedItem ? 'Shared!' : 'Share'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyDetails}
+            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2"
+            title="Copy item details to clipboard"
+          >
+            {copiedItem ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+            <span className="hidden sm:inline">{copiedItem ? 'Copied!' : 'Copy'}</span>
+          </button>
           <button
             id={`scan-btn-${offer.id}`}
             type="button"
@@ -113,9 +149,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             type="button"
             onClick={onDuplicate}
             className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
-            title="Duplicate Offer"
+            title="Duplicate Item"
           >
-            <Copy className="w-4 h-4" />
+            <CopyPlus className="w-4 h-4" />
           </button>
           <button
             id={`remove-btn-${offer.id}`}
@@ -134,13 +170,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="sm:col-span-2">
             <label className="block text-[11px] font-medium text-slate-500 mb-1">
-              Item Name / Variant
+              Item
             </label>
             <input
               id={`input-name-${offer.id}`}
               type="text"
               value={offer.name}
               onChange={(e) => handleChange('name', e.target.value)}
+              onFocus={(e) => e.target.select()}
               placeholder="e.g. Family Pack, 12-Can Case"
               className="w-full text-sm font-semibold text-slate-900 bg-slate-50/50 border border-slate-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800"
             />
@@ -154,6 +191,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               type="text"
               value={offer.storeName || ''}
               onChange={(e) => handleChange('storeName', e.target.value)}
+              onFocus={(e) => e.target.select()}
               placeholder="Costco, Target..."
               className="w-full text-xs text-slate-800 bg-slate-50/50 border border-slate-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800"
             />
@@ -167,7 +205,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <label className="h-5 flex items-center text-[11px] font-medium text-slate-500 mb-1 truncate">
               <span className="hidden sm:inline">Shelf </span>Price ($)
             </label>
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-800 focus-within:border-transparent transition-all">
+            <div className={`flex items-center bg-slate-50 border rounded-xl px-2.5 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-800 focus-within:border-transparent transition-all ${
+              offer.price <= 0 ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200'
+            }`}>
               <span className="text-slate-400 text-sm font-semibold mr-1 select-none shrink-0">
                 $
               </span>
@@ -178,20 +218,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 min="0"
                 value={offer.price === 0 ? '' : offer.price}
                 onChange={(e) => handleChange('price', parseFloat(e.target.value) || 0)}
+                onFocus={(e) => e.target.select()}
                 placeholder="0.00"
                 className="w-full text-base font-bold text-slate-900 bg-transparent border-none p-0 focus:outline-none min-w-0"
               />
             </div>
+            {offer.price <= 0 && (
+              <span className="text-[10px] text-amber-600 font-medium mt-0.5 block">
+                Enter price &gt; $0
+              </span>
+            )}
           </div>
 
           {/* Size */}
           <div className="min-w-0">
             <label
               className="h-5 flex items-center text-[11px] font-medium text-slate-500 mb-1 truncate"
-              title="Size / Net Amount"
+              title="Size"
             >
-              <span className="hidden sm:inline">Size / Net Amount</span>
-              <span className="sm:hidden">Size</span>
+              Size
             </label>
             <input
               id={`input-size-${offer.id}`}
@@ -200,9 +245,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               min="0"
               value={offer.size === 0 ? '' : offer.size}
               onChange={(e) => handleChange('size', parseFloat(e.target.value) || 0)}
+              onFocus={(e) => e.target.select()}
               placeholder="e.g. 500"
-              className="w-full text-base font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0"
+              className={`w-full text-base font-semibold text-slate-900 bg-slate-50 border rounded-xl px-2.5 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0 ${
+                offer.size <= 0 ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200'
+              }`}
             />
+            {offer.size <= 0 && (
+              <span className="text-[10px] text-rose-600 font-medium mt-0.5 block">
+                Enter size &gt; 0
+              </span>
+            )}
           </div>
 
           {/* Unit */}
@@ -252,6 +305,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               min="1"
               value={offer.packCount || 1}
               onChange={(e) => handleChange('packCount', parseInt(e.target.value) || 1)}
+              onFocus={(e) => e.target.select()}
               className="w-full text-sm font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0"
             />
           </div>
@@ -266,8 +320,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           >
             <Tag className="w-3.5 h-3.5" />
             {offer.dealType !== 'none'
-              ? `Deal Applied: ${offer.dealType.replace('_', ' ')}`
-              : 'Add Coupon / Deal Modifier'}
+              ? `Coupon / Deal: ${offer.dealType.replace('_', ' ')}`
+              : 'Coupon / Deal'}
             {showDeals ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
 
@@ -275,7 +329,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="mt-2 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div>
                 <label className="block text-[11px] font-medium text-indigo-900 mb-1">
-                  Discount / Deal Format
+                  Coupon / Deal Type
                 </label>
                 <select
                   id={`select-deal-type-${offer.id}`}
@@ -307,6 +361,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     step="any"
                     value={offer.dealValue || ''}
                     onChange={(e) => handleChange('dealValue', parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     placeholder={
                       offer.dealType === 'percent_off' ? 'e.g. 20' : 'e.g. 1.50'
                     }
@@ -330,13 +385,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         >
           <div>
             <div className="text-[11px] opacity-80 font-medium tracking-wide uppercase">
-              Calculated Unit Price
+              Unit Price
             </div>
             <div className="text-xl font-black tracking-tight">
-              {formatUnitPrice(unitPrice)}{' '}
-              <span className="text-xs font-normal opacity-90">/ {referenceBase}</span>
+              {offer.size <= 0 || offer.price <= 0 ? (
+                <span className="text-base font-bold text-amber-200">
+                  {offer.size <= 0 && offer.price <= 0
+                    ? 'Enter Price & Size'
+                    : offer.size <= 0
+                    ? 'Enter Size'
+                    : 'Enter Price'}
+                </span>
+              ) : (
+                <>
+                  {formatUnitPrice(unitPrice)}{' '}
+                  <span className="text-xs font-normal opacity-90">/ {referenceBase}</span>
+                </>
+              )}
             </div>
-            {effectivePrice !== offer.price && (
+            {effectivePrice !== offer.price && offer.price > 0 && (
               <div className="text-[11px] opacity-90 mt-0.5">
                 Effective Total: ${effectivePrice.toFixed(2)} (after deal)
               </div>

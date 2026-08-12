@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ProductOffer, UnitType } from '../types';
-import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2, Bug } from 'lucide-react';
+import { isDebugEnabled, setDebugMode } from '../config/debug';
 
 interface AIScanModalProps {
   isOpen: boolean;
@@ -18,11 +19,23 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
   const [scanStatus, setScanStatus] = useState<string | null>(null);
+  const [debugActive, setDebugActive] = useState<boolean>(isDebugEnabled());
+  const clickCountRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
   const hasClientApiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
+
+  const handleTitleClick = () => {
+    clickCountRef.current += 1;
+    if (clickCountRef.current >= 3) {
+      const nextState = !debugActive;
+      setDebugActive(nextState);
+      setDebugMode(nextState);
+      clickCountRef.current = 0;
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,20 +172,20 @@ Guidance:
       // 1. Client-side Gemini if build-time VITE_GEMINI_API_KEY exists (Primary path on static hosts like GitHub Pages)
       if (apiKey) {
         try {
-          setScanStatus('Scanning with Gemini Flash Vision...');
+          setScanStatus('Scanning shelf tag with AI...');
           const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
-          applyScannedData(scanned, 'Gemini Flash (Client API)');
+          applyScannedData(scanned, 'AI Vision');
           return;
         } catch (clientErr: any) {
           console.error('Client Gemini Error:', clientErr);
-          setError(`Gemini API Error: ${clientErr.message || 'Invalid request'}. Falling back to Browser WebAssembly OCR...`);
+          setError(`AI Error: ${clientErr.message || 'Invalid request'}. Falling back to Browser WebAssembly OCR...`);
         }
       }
 
       // 2. Try backend API endpoint (only if NOT on static host like github.io and no client key)
       if (!isGitHubPages) {
         try {
-          setScanStatus('Scanning with Server Gemini Vision API...');
+          setScanStatus('Scanning shelf tag with AI...');
           const response = await fetch('/api/scan-label', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -185,7 +198,7 @@ Guidance:
           if (response.ok) {
             const resData = await response.json();
             if (resData?.success) {
-              applyScannedData(resData.data, 'Gemini 2.5 Flash (Backend API)');
+              applyScannedData(resData.data, 'AI Vision');
               return;
             }
           }
@@ -258,14 +271,25 @@ Guidance:
         </button>
 
         {/* Modal Title */}
-        <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-wider">
-          <Sparkles className="w-4 h-4" /> AI Gemini Shelf Tag Scanner
+        <div
+          onClick={handleTitleClick}
+          className="flex items-center justify-between cursor-pointer select-none"
+          title="Triple-click title to toggle debug mode"
+        >
+          <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" /> AI Tag Scanner
+          </div>
+          {debugActive && (
+            <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Bug className="w-3 h-3" /> DEBUG ON
+            </span>
+          )}
         </div>
         <h3 className="text-xl font-black text-slate-900">
           Scan Store Price Tag
         </h3>
         <p className="text-xs text-slate-500">
-          Upload or take a photo of a price tag or package. Gemini AI will extract price, size, and unit automatically.
+          Upload or take a photo of a price tag or package. AI will extract price, size, and unit automatically.
         </p>
 
         {/* Upload Drop Area */}
@@ -325,21 +349,23 @@ Guidance:
           </div>
         )}
 
-        {/* Engine Environment Feedback Info */}
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1 text-[11px] text-slate-600">
-          <div className="font-bold text-slate-800 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-            AI Extraction Engine Pipeline:
+        {/* Engine Environment Feedback Info (Shown only in Debug Mode) */}
+        {debugActive && (
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1 text-[11px] text-slate-600">
+            <div className="font-bold text-slate-800 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              AI Extraction Engine Pipeline:
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+              <span>
+                {hasClientApiKey
+                  ? 'Gemini Flash Vision (Active via VITE_GEMINI_API_KEY)'
+                  : '1. Gemini Server API → 2. Browser WebAssembly OCR (Fallback)'}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-            <span>
-              {hasClientApiKey
-                ? 'Gemini Flash Vision (Active via VITE_GEMINI_API_KEY)'
-                : '1. Gemini Server API → 2. Browser WebAssembly OCR (Fallback)'}
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2">

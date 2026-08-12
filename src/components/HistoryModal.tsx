@@ -97,6 +97,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               type="text"
               value={tripTitle}
               onChange={(e) => setTripTitle(e.target.value)}
+              onFocus={(e) => e.target.select()}
               placeholder="e.g. Costco vs Target Rice Run"
               className="flex-1 text-xs bg-white border border-indigo-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
