@@ -568,7 +568,7 @@ Guidance:
                   <Video className="w-5 h-5" />
                 </div>
                 <div className="text-xs font-bold text-slate-850">
-                  Web Viewfinder
+                  Live Camera
                 </div>
                 <div className="text-[10px] text-slate-500">
                   Scan live in-app

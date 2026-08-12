@@ -88,6 +88,37 @@ if (!(Test-Path "android")) {
     Write-Host "[+] Existing 'android' folder detected." -ForegroundColor Green
 }
 
+# Ensure AndroidManifest.xml includes Camera and Storage permissions
+$ManifestPath = "android/app/src/main/AndroidManifest.xml"
+if (Test-Path $ManifestPath) {
+    Write-Host "    Verifying Android permissions in AndroidManifest.xml..." -ForegroundColor Yellow
+    $ManifestContent = Get-Content $ManifestPath -Raw
+    
+    $PermissionsToAdd = @(
+        '<uses-permission android:name="android.permission.CAMERA" />',
+        '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />',
+        '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />',
+        '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />',
+        '<uses-feature android:name="android.hardware.camera" android:required="false" />',
+        '<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />'
+    )
+    
+    $Modified = $false
+    foreach ($Perm in $PermissionsToAdd) {
+        if ($ManifestContent -notlike "*$Perm*") {
+            $ManifestContent = $ManifestContent -replace '</manifest>', "    $Perm`n</manifest>"
+            $Modified = $true
+        }
+    }
+    
+    if ($Modified) {
+        Set-Content -Path $ManifestPath -Value $ManifestContent -Encoding UTF8
+        Write-Host "    [+] Added CAMERA and Storage permissions to AndroidManifest.xml!" -ForegroundColor Green
+    } else {
+        Write-Host "    [+] Camera permissions already verified in AndroidManifest.xml." -ForegroundColor Green
+    }
+}
+
 # 6. Sync Web Assets to Android Project
 Write-Host "`n[5/6] Syncing web assets to Android native project..." -ForegroundColor Cyan
 npx cap sync android
