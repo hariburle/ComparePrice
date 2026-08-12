@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ProductOffer, UnitType } from '../types';
-import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2, Bug } from 'lucide-react';
+import { Camera, Upload, Sparkles, X, CheckCircle2, AlertCircle, Loader2, Bug, Image } from 'lucide-react';
 import { isDebugEnabled, setDebugMode } from '../config/debug';
 
 interface AIScanModalProps {
@@ -20,12 +20,20 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   const [mimeType, setMimeType] = useState<string>('image/jpeg');
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [debugActive, setDebugActive] = useState<boolean>(isDebugEnabled());
+  const [customApiKey, setCustomApiKey] = useState<string>('');
+
   const clickCountRef = useRef<number>(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
+    setCustomApiKey(savedKey);
+  }, []);
 
   if (!isOpen) return null;
 
-  const hasClientApiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
+  const activeApiKey = customApiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || '';
 
   const handleTitleClick = () => {
     clickCountRef.current += 1;
@@ -166,26 +174,26 @@ Guidance:
     setScanStatus('Connecting to scanner...');
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = activeApiKey;
       const isGitHubPages = window.location.hostname.endsWith('.github.io');
 
-      // 1. Client-side Gemini if build-time VITE_GEMINI_API_KEY exists (Primary path on static hosts like GitHub Pages)
+      // 1. Client-side Gemini if API Key is available
       if (apiKey) {
         try {
-          setScanStatus('Scanning shelf tag with AI...');
+          setScanStatus('Scanning shelf tag with Gemini AI...');
           const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
-          applyScannedData(scanned, 'AI Vision');
+          applyScannedData(scanned, 'Gemini AI Vision');
           return;
         } catch (clientErr: any) {
           console.error('Client Gemini Error:', clientErr);
-          setError(`AI Error: ${clientErr.message || 'Invalid request'}. Falling back to Browser WebAssembly OCR...`);
+          setError(`Gemini API Error: ${clientErr.message || 'Invalid key'}. Falling back to WebAssembly OCR...`);
         }
       }
 
       // 2. Try backend API endpoint (only if NOT on static host like github.io and no client key)
       if (!isGitHubPages) {
         try {
-          setScanStatus('Scanning shelf tag with AI...');
+          setScanStatus('Scanning shelf tag with Gemini AI...');
           const response = await fetch('/api/scan-label', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -198,21 +206,18 @@ Guidance:
           if (response.ok) {
             const resData = await response.json();
             if (resData?.success) {
-              applyScannedData(resData.data, 'AI Vision');
+              applyScannedData(resData.data, 'Gemini AI Vision');
               return;
             }
           }
         } catch (err: any) {
           console.warn('Backend API scan failed or unavailable:', err);
         }
-      } else if (!apiKey) {
-        console.warn('VITE_GEMINI_API_KEY is missing in GitHub Pages build.');
-        setError('Notice: VITE_GEMINI_API_KEY is missing in static build. Using Browser WebAssembly OCR.');
       }
 
       // 3. Pure browser WebAssembly OCR (Tesseract.js) fallback
       try {
-        setScanStatus('Scanning with Browser WebAssembly OCR (Tesseract.js)...');
+        setScanStatus('Scanning with Browser WebAssembly OCR...');
         const ocrScanned = await parseWithTesseract(imagePreview);
         applyScannedData(ocrScanned, 'Browser WebAssembly OCR');
         return;
@@ -260,7 +265,24 @@ Guidance:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative space-y-4">
+      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative space-y-4 max-h-[90vh] overflow-y-auto">
+        {/* Hidden Camera & Gallery Inputs */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         {/* Close Button */}
         <button
           type="button"
@@ -289,47 +311,69 @@ Guidance:
           Scan Store Price Tag
         </h3>
         <p className="text-xs text-slate-500">
-          Upload or take a photo of a price tag or package. AI will extract price, size, and unit automatically.
+          Take a photo with your camera or select from gallery. Gemini AI will extract price, size, and unit automatically.
         </p>
 
-        {/* Upload Drop Area */}
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/30 hover:bg-indigo-50/70 transition-all rounded-2xl p-6 text-center cursor-pointer relative overflow-hidden"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
-          {imagePreview ? (
-            <div className="space-y-2">
-              <img
-                src={imagePreview}
-                alt="Shelf tag preview"
-                className="max-h-48 mx-auto rounded-xl object-contain border border-slate-200"
-              />
-              <span className="text-xs font-semibold text-indigo-600 inline-block">
-                Tap to change photo
-              </span>
+        {/* Image Capture & Upload Options */}
+        {imagePreview ? (
+          <div className="border border-slate-200 bg-slate-50 rounded-2xl p-4 text-center space-y-3">
+            <img
+              src={imagePreview}
+              alt="Shelf tag preview"
+              className="max-h-48 mx-auto rounded-xl object-contain border border-slate-200"
+            />
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Camera className="w-3.5 h-3.5" /> Retake Photo
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="px-3 py-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Image className="w-3.5 h-3.5" /> Choose Other
+              </button>
             </div>
-          ) : (
-            <div className="space-y-2 py-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto text-indigo-600">
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="p-5 border-2 border-dashed border-indigo-300 hover:border-indigo-600 bg-indigo-50/50 hover:bg-indigo-50/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                 <Camera className="w-6 h-6" />
               </div>
-              <div className="text-xs font-bold text-slate-800">
-                Tap to upload photo or take picture
+              <div className="text-xs font-bold text-indigo-900">
+                Open Camera
               </div>
-              <div className="text-[11px] text-slate-400">
-                Supports JPG, PNG, WebP up to 10MB
+              <div className="text-[10px] text-slate-500">
+                Snap tag photo directly
               </div>
-            </div>
-          )}
-        </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="p-5 border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-slate-100/80 rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2 group"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-slate-800 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <Upload className="w-6 h-6" />
+              </div>
+              <div className="text-xs font-bold text-slate-900">
+                Choose Photo
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Upload from Gallery
+              </div>
+            </button>
+          </div>
+        )}
 
         {scanStatus && (
           <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-semibold text-indigo-900 flex items-center gap-2 animate-fade-in">
@@ -349,7 +393,7 @@ Guidance:
           </div>
         )}
 
-        {/* Engine Environment Feedback Info (Shown only in Debug Mode) */}
+        {/* Engine Environment Feedback Info (Shown in Debug Mode) */}
         {debugActive && (
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1 text-[11px] text-slate-600">
             <div className="font-bold text-slate-800 flex items-center gap-1.5">
@@ -359,8 +403,8 @@ Guidance:
             <div className="flex items-center gap-1.5 text-slate-700 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
               <span>
-                {hasClientApiKey
-                  ? 'Gemini Flash Vision (Active via VITE_GEMINI_API_KEY)'
+                {activeApiKey
+                  ? 'Gemini Flash Vision (Active)'
                   : '1. Gemini Server API → 2. Browser WebAssembly OCR (Fallback)'}
               </span>
             </div>

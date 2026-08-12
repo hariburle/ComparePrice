@@ -1,6 +1,8 @@
 {
   "short_name": "Unit Price",
   "name": "Unit Price Compare",
+  "scope": "./",
+  "start_url": "./",
   "icons": [
     {
       "src": "icon.png",
@@ -19,7 +21,6 @@
       "type": "image/jpeg"
     }
   ],
-  "start_url": "./",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "display": "standalone",

@@ -134,46 +134,46 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
 
       {/* Best Deal Winner Banner */}
       {bestValue && (
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4 sm:p-5 rounded-2xl shadow-md relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3 z-10">
-            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md shrink-0">
-              <Trophy className="w-7 h-7 text-amber-300 animate-bounce" />
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-3 sm:p-4 rounded-xl shadow-md relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2.5 z-10 min-w-0">
+            <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md shrink-0">
+              <Trophy className="w-5 h-5 text-amber-300" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.2 rounded-full tracking-wider">
                   {isTie ? 'Tie' : 'Winner'}
                 </span>
-                <span className="text-xs font-semibold text-emerald-100">
+                <span className="text-[11px] font-semibold text-emerald-100">
                   {isTie ? 'Equal Unit Price' : 'Best Unit Price'}
                 </span>
               </div>
-              <h3 className="text-lg font-black tracking-tight mt-0.5 flex flex-wrap items-center gap-2">
-                <span>{isTie ? 'All items cost the same unit price' : bestValue.productName}</span>
+              <h3 className="text-sm sm:text-base font-black tracking-tight mt-0.5 flex flex-wrap items-center gap-1.5 leading-snug">
+                <span className="truncate">{isTie ? 'All items cost the same unit price' : bestValue.productName}</span>
                 {!isTie && winningProduct?.storeName?.trim() && (
-                  <span className="text-xs font-bold text-amber-200 bg-emerald-800/80 border border-emerald-400/30 px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold text-amber-200 bg-emerald-800/80 border border-emerald-400/30 px-1.5 py-0.2 rounded shrink-0">
                     @{winningProduct.storeName.trim()}
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-emerald-100 mt-1">
-                At <span className="font-bold text-white">{formatUnitPrice(bestValue.unitPricePerStandardBase)}</span> {getReferenceBaseLabel(referenceBase)}, {isTie ? 'all compared items are equally priced.' : 'cheapest offer!'}
+              <p className="text-[11px] text-emerald-100 mt-0.5">
+                At <span className="font-bold text-white">{formatUnitPrice(bestValue.unitPricePerStandardBase)}</span> {getReferenceBaseLabel(referenceBase)}, {isTie ? 'all items are equally priced.' : 'cheapest offer!'}
               </p>
             </div>
           </div>
 
           {!isTie && worstValue && bestValue.savingsPercentageVsWorst > 0 && (
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shrink-0 w-full sm:w-auto text-left sm:text-right z-10">
-              <div className="text-[11px] text-emerald-100 font-medium">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-2.5 border border-white/20 shrink-0 w-full sm:w-auto text-left sm:text-right z-10 flex sm:flex-col items-center sm:items-end justify-between">
+              <div className="text-[10px] sm:text-[11px] text-emerald-100 font-medium">
                 <span className="hidden sm:inline">Savings vs. Most Expensive:</span>
                 <span className="sm:hidden">vs. Highest Cost:</span>
               </div>
-              <div className="text-2xl font-black text-amber-300 flex items-center justify-start sm:justify-end gap-1">
-                <ArrowDownRight className="w-6 h-6" />
+              <div className="text-base sm:text-xl font-black text-amber-300 flex items-center gap-0.5">
+                <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 {bestValue.savingsPercentageVsWorst}% CHEAPER
               </div>
-              <div className="text-[11px] text-emerald-100">
-                Saves {formatUnitPrice(dollarSavings)}/{referenceBase}
+              <div className="text-[10px] sm:text-[11px] text-emerald-100">
+                Saves {formatUnitPrice(dollarSavings)} / {referenceBase}
               </div>
             </div>
           )}
@@ -181,12 +181,11 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
       )}
 
       {/* Visual Unit Price Comparison Bar Chart */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
             <Award className="w-4 h-4 text-indigo-600" />
-            <span className="hidden sm:inline">Price Comparison Breakdown</span>
-            <span className="sm:hidden">Comparison</span> ({getReferenceBaseLabel(referenceBase)})
+            <span>Price Comparison</span> ({getReferenceBaseLabel(referenceBase)})
           </h4>
 
           <div className="flex items-center gap-2">
@@ -231,7 +230,7 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
           </div>
         </div>
 
-        <div className="space-y-3 pt-1">
+        <div className="space-y-2.5 pt-1">
           {validComparisons
             .sort((a, b) => a.unitPricePerStandardBase - b.unitPricePerStandardBase)
             .map((comp, idx) => {
@@ -241,54 +240,78 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
               );
 
               return (
-                <div key={comp.productId} className="space-y-1">
-                  {/* Visual Bar */}
+                <div key={comp.productId} className="space-y-1 bg-slate-50/70 p-2 sm:p-2.5 rounded-xl border border-slate-100">
+                  {/* Visual Row Top */}
                   {(() => {
-                    const matchedProduct = products.find((p) => p.id === comp.productId);
+                    const matchedProductIndex = products.findIndex((p) => p.id === comp.productId);
+                    const cardNum = matchedProductIndex >= 0 ? matchedProductIndex + 1 : null;
+                    const matchedProduct = cardNum ? products[matchedProductIndex] : null;
                     const storeName = matchedProduct?.storeName?.trim();
+                    const rankMedal =
+                      idx === 0
+                        ? '🥇 1st'
+                        : idx === 1
+                        ? '🥈 2nd'
+                        : idx === 2
+                        ? '🥉 3rd'
+                        : `#${idx + 1}`;
+
                     return (
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="w-5 h-5 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold shrink-0">
-                            #{idx + 1}
-                          </span>
-                          <span className="truncate">{comp.productName}</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-900">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-800 text-white text-[10px] font-bold shrink-0">
+                              {rankMedal}
+                            </span>
+                            <span className="font-bold text-slate-900 truncate" title={comp.productName}>
+                              {comp.productName}
+                            </span>
+                          </div>
+                          <div className="font-bold text-slate-900 text-xs sm:text-sm shrink-0">
+                            {formatUnitPrice(comp.unitPricePerStandardBase)}{' '}
+                            <span className="text-[10px] font-normal text-slate-500">
+                              / {referenceBase}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Badges line below title so product name is NEVER truncated on small screens */}
+                        <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                          {cardNum && (
+                            <span className="w-4 h-4 rounded bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                              {String.fromCharCode(64 + cardNum)}
+                            </span>
+                          )}
                           {storeName && (
-                            <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.2 rounded shrink-0">
+                            <span className="font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.2 rounded shrink-0">
                               @{storeName}
                             </span>
                           )}
                           {isTie ? (
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
+                            <span className="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded shrink-0">
                               Tied
                             </span>
                           ) : (
                             <>
                               {comp.isBestValue && (
-                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
-                                  Best
+                                <span className="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded shrink-0">
+                                  Best Value
                                 </span>
                               )}
                               {comp.isWorstValue && (
-                                <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.2 rounded shrink-0">
+                                <span className="bg-rose-100 text-rose-800 font-bold px-1.5 py-0.2 rounded shrink-0">
                                   Costliest
                                 </span>
                               )}
                             </>
                           )}
                         </div>
-                        <div className="font-bold text-slate-900 shrink-0">
-                          {formatUnitPrice(comp.unitPricePerStandardBase)}{' '}
-                          <span className="text-[10px] font-normal text-slate-500">
-                            / {referenceBase}
-                          </span>
-                        </div>
                       </div>
                     );
                   })()}
 
                   {/* Visual Bar */}
-                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex items-center">
+                  <div className="w-full h-2.5 bg-slate-200/80 rounded-full overflow-hidden flex items-center mt-1">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         isTie

@@ -49,7 +49,8 @@ export async function shareItem(
   const text = formatItemText(offer, referenceBase, isBestValue);
   const title = offer.name.trim() || 'Shopping Item';
 
-  if (navigator.share && typeof navigator.canShare === 'function' && navigator.canShare({ text })) {
+  // Use Native Share API whenever available (mobile Chrome, Safari, Android WebView/Capacitor)
+  if (navigator.share) {
     try {
       await navigator.share({
         title,
@@ -57,14 +58,15 @@ export async function shareItem(
       });
       return 'shared';
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.warn('Native share failed, copying to clipboard instead:', err);
-      } else {
+      if (err.name === 'AbortError') {
+        // User closed or canceled native share sheet
         return 'shared';
       }
+      console.warn('Native share failed, falling back to clipboard copy:', err);
     }
   }
 
+  // Fallback to copying formatted text to clipboard
   await copyTextToClipboard(text);
   return 'copied';
 }

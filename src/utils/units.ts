@@ -186,7 +186,7 @@ export function compareProductOffers(
   const { factorInBase } = getReferenceBaseUnitFactor(targetReferenceBase);
 
   // Calculate unit prices for each product
-  const rawResults = products.map((p) => {
+  const rawResults = products.map((p, idx) => {
     const effectivePrice = calculateEffectivePrice(p);
     const totalBaseUnits = calculateTotalBaseUnits(p);
 
@@ -195,9 +195,11 @@ export function compareProductOffers(
       unitPrice = (effectivePrice / totalBaseUnits) * factorInBase;
     }
 
+    const defaultName = String.fromCharCode(65 + idx);
+
     return {
       productId: p.id,
-      productName: p.name || 'Unnamed Item',
+      productName: p.name?.trim() || (p.storeName?.trim() ? `@${p.storeName.trim()}` : defaultName),
       effectivePrice,
       totalBaseUnits,
       unitPrice,

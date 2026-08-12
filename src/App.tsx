@@ -7,6 +7,7 @@ import { ComparisonSummary } from './components/ComparisonSummary';
 import { CategoryPresets } from './components/CategoryPresets';
 import { AIScanModal } from './components/AIScanModal';
 import { HistoryModal } from './components/HistoryModal';
+import { SettingsModal } from './components/SettingsModal';
 import {
   Scale,
   Plus,
@@ -15,12 +16,14 @@ import {
   LayoutGrid,
   History,
   Smartphone,
+  Settings,
 } from 'lucide-react';
 
 export default function App() {
   const [logoError, setLogoError] = useState<boolean>(false);
   // Track if user has started using/customizing the app
   const [hasStarted, setHasStarted] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Initial offer: start with 1 item
   const [products, setProducts] = useState<ProductOffer[]>([
@@ -176,16 +179,24 @@ export default function App() {
               </div>
             )}
             <div>
-              <h1 className="text-sm font-black tracking-tight leading-none">
+              <h1 className="text-sm sm:text-base font-black tracking-tight leading-none">
                 Unit Price Compare
               </h1>
-              <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                Instant Bargain Finder
-              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
+            <button
+              id="header-settings-btn"
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-300" />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
+
             <button
               id="header-reset-btn"
               type="button"
@@ -353,6 +364,12 @@ export default function App() {
           setProducts(loadedOffers);
           setReferenceBase(refBase);
         }}
+      />
+
+      {/* App Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );
