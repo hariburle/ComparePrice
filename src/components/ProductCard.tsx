@@ -88,7 +88,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       }`}
     >
       {/* Top Rank Banner / Header */}
-      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-4 py-2 bg-slate-50 border-b border-slate-100 gap-1.5">
+      <div className="flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-50 border-b border-slate-100 gap-1.5">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <div className="w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-black flex items-center justify-center shrink-0 shadow-sm">
             {itemLetter}
@@ -167,11 +167,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      <div className="p-4 space-y-3.5">
-        {/* Name & Store Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="sm:col-span-2">
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+      <div className="p-2.5 sm:p-3.5 space-y-2.5 sm:space-y-3">
+        {/* Name & Store Row - Side-by-side on all screens */}
+        <div className="grid grid-cols-12 gap-2">
+          <div className="col-span-7 sm:col-span-8 relative">
+            <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] sm:text-[11px] font-medium text-slate-400 select-none pointer-events-none z-10 transition-all">
               Item
             </label>
             <input
@@ -180,13 +180,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               value={offer.name}
               onChange={(e) => handleChange('name', e.target.value)}
               onFocus={(e) => e.target.select()}
-              placeholder="e.g. Family Pack, 12-Can Case"
-              className="w-full text-sm font-semibold text-slate-900 bg-slate-50/50 border border-slate-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800"
+              placeholder="e.g. Tomato Bag"
+              className="w-full text-xs sm:text-sm font-semibold text-slate-900 bg-transparent border border-slate-300 rounded-lg px-2.5 py-1.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
             />
           </div>
-          <div>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center gap-1">
-              <Store className="w-3 h-3" /> <span className="hidden sm:inline">Store (Optional)</span><span className="sm:hidden">Store</span>
+          <div className="col-span-5 sm:col-span-4 relative">
+            <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] sm:text-[11px] font-medium text-slate-400 select-none pointer-events-none z-10 flex items-center gap-1 transition-all">
+              <Store className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">Store</span>
             </label>
             <input
               id={`input-store-${offer.id}`}
@@ -194,23 +195,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               value={offer.storeName || ''}
               onChange={(e) => handleChange('storeName', e.target.value)}
               onFocus={(e) => e.target.select()}
-              placeholder="Costco, Target..."
-              className="w-full text-xs text-slate-800 bg-slate-50/50 border border-slate-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800"
+              placeholder="Costco..."
+              className="w-full text-xs sm:text-sm text-slate-800 bg-transparent border border-slate-300 rounded-lg px-2.5 py-1.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
             />
           </div>
         </div>
 
         {/* Price & Size Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-3 gap-2">
           {/* Price */}
-          <div className="min-w-0">
-            <label className="h-5 flex items-center text-[11px] font-medium text-slate-500 mb-1 truncate">
-              <span className="hidden sm:inline">Shelf </span>Price ($)
+          <div className="relative col-span-1">
+            <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] sm:text-[11px] font-medium text-slate-400 select-none pointer-events-none z-10 transition-all">
+              Price ($)
             </label>
-            <div className={`flex items-center bg-slate-50 border rounded-xl px-2.5 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-800 focus-within:border-transparent transition-all ${
-              offer.price <= 0 ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200'
+            <div className={`flex items-center bg-transparent border rounded-lg px-2.5 py-1.5 sm:py-2 focus-within:ring-2 focus-within:ring-slate-800 focus-within:border-transparent transition-all ${
+              offer.price <= 0 ? 'border-amber-300 bg-amber-50/10' : 'border-slate-300'
             }`}>
-              <span className="text-slate-400 text-sm font-semibold mr-1 select-none shrink-0">
+              <span className="text-slate-400 text-xs sm:text-sm font-semibold mr-1 select-none shrink-0">
                 $
               </span>
               <input
@@ -222,22 +223,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 onChange={(e) => handleChange('price', parseFloat(e.target.value) || 0)}
                 onFocus={(e) => e.target.select()}
                 placeholder="0.00"
-                className="w-full text-base font-bold text-slate-900 bg-transparent border-none p-0 focus:outline-none min-w-0"
+                className="w-full text-xs sm:text-sm font-bold text-slate-900 bg-transparent border-none p-0 focus:outline-none min-w-0"
               />
             </div>
             {offer.price <= 0 && (
-              <span className="text-[10px] text-amber-600 font-medium mt-0.5 block">
-                Enter price &gt; $0
+              <span className="text-[9px] text-amber-600 font-medium mt-0.5 block px-1">
+                Enter price
               </span>
             )}
           </div>
 
           {/* Size */}
-          <div className="min-w-0">
-            <label
-              className="h-5 flex items-center text-[11px] font-medium text-slate-500 mb-1 truncate"
-              title="Size"
-            >
+          <div className="relative col-span-1">
+            <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] sm:text-[11px] font-medium text-slate-400 select-none pointer-events-none z-10 transition-all">
               Size
             </label>
             <input
@@ -249,27 +247,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               onChange={(e) => handleChange('size', parseFloat(e.target.value) || 0)}
               onFocus={(e) => e.target.select()}
               placeholder="e.g. 500"
-              className={`w-full text-base font-semibold text-slate-900 bg-slate-50 border rounded-xl px-2.5 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0 ${
-                offer.size <= 0 ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200'
+              className={`w-full text-xs sm:text-sm font-semibold text-slate-900 bg-transparent border rounded-lg px-2.5 py-1.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0 transition-all ${
+                offer.size <= 0 ? 'border-rose-300 bg-rose-50/10' : 'border-slate-300'
               }`}
             />
             {offer.size <= 0 && (
-              <span className="text-[10px] text-rose-600 font-medium mt-0.5 block">
-                Enter size &gt; 0
+              <span className="text-[9px] text-rose-600 font-medium mt-0.5 block px-1">
+                Enter size
               </span>
             )}
           </div>
 
           {/* Unit */}
-          <div className="min-w-0">
-            <label className="h-5 flex items-center text-[11px] font-medium text-slate-500 mb-1 truncate">
+          <div className="relative col-span-1">
+            <label className="absolute -top-2 left-3 px-1 bg-white text-[10px] sm:text-[11px] font-medium text-slate-400 select-none pointer-events-none z-10 transition-all">
               Unit
             </label>
             <select
               id={`select-unit-${offer.id}`}
               value={offer.unit}
               onChange={(e) => handleChange('unit', e.target.value as UnitType)}
-              className="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0 truncate"
+              className="w-full text-xs font-semibold text-slate-800 bg-transparent border border-slate-300 rounded-lg px-2 py-1.5 sm:py-2 focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0 truncate transition-all"
             >
               <optgroup label="Weight">
                 <option value="g">Grams (g)</option>
@@ -293,24 +291,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </optgroup>
             </select>
           </div>
-
-          {/* Multi-Pack Count */}
-          <div className="min-w-0">
-            <label className="h-5 flex items-center gap-1 text-[11px] font-medium text-slate-500 mb-1 truncate">
-              <Package className="w-3 h-3 shrink-0" />
-              <span className="hidden sm:inline">Pack Qty</span>
-              <span className="sm:hidden">Pack</span>
-            </label>
-            <input
-              id={`input-pack-${offer.id}`}
-              type="number"
-              min="1"
-              value={offer.packCount || 1}
-              onChange={(e) => handleChange('packCount', parseInt(e.target.value) || 1)}
-              onFocus={(e) => e.target.select()}
-              className="w-full text-sm font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 min-w-0"
-            />
-          </div>
         </div>
 
         {/* Deals & Coupons Toggle */}
@@ -318,7 +298,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <button
             type="button"
             onClick={() => setShowDeals(!showDeals)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors py-1"
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors py-0.5"
           >
             <Tag className="w-3.5 h-3.5" />
             {offer.dealType !== 'none'
@@ -328,7 +308,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </button>
 
           {showDeals && (
-            <div className="mt-2 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="mt-1.5 p-2.5 sm:p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div>
                 <label className="block text-[11px] font-medium text-indigo-900 mb-1">
                   Coupon / Deal Type
@@ -377,7 +357,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Calculated Unit Price Output Card */}
         <div
-          className={`p-3.5 rounded-xl flex items-center justify-between ${
+          className={`p-2 sm:p-2.5 rounded-xl flex items-center justify-between ${
             isBestValue && totalOffersCount > 1
               ? 'bg-emerald-600 text-white'
               : isWorstValue && totalOffersCount > 1
@@ -385,50 +365,42 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               : 'bg-slate-900 text-white'
           }`}
         >
-          <div>
-            <div className="text-[11px] opacity-80 font-medium tracking-wide uppercase">
-              Unit Price
-            </div>
-            <div className="text-xl font-black tracking-tight">
-              {offer.size <= 0 || offer.price <= 0 ? (
-                <span className="text-base font-bold text-amber-200">
-                  {offer.size <= 0 && offer.price <= 0
-                    ? 'Enter Price & Size'
-                    : offer.size <= 0
-                    ? 'Enter Size'
-                    : 'Enter Price'}
-                </span>
-              ) : (
-                <>
-                  {formatUnitPrice(unitPrice)}{' '}
-                  <span className="text-xs font-normal opacity-90">/ {referenceBase}</span>
-                </>
-              )}
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] sm:text-[11px] opacity-90 font-bold tracking-wide uppercase shrink-0">
+                Unit Price:
+              </span>
+              <span className="text-sm sm:text-base font-black tracking-tight truncate">
+                {offer.size <= 0 || offer.price <= 0 ? (
+                  <span className="text-[11px] sm:text-xs font-medium text-amber-200">
+                    {offer.size <= 0 && offer.price <= 0
+                      ? 'Enter Details'
+                      : offer.size <= 0
+                      ? 'Enter Size'
+                      : 'Enter Price'}
+                  </span>
+                ) : (
+                  <>
+                    {formatUnitPrice(unitPrice)}{' '}
+                    <span className="text-[11px] font-normal opacity-85">/ {referenceBase}</span>
+                  </>
+                )}
+              </span>
             </div>
             {effectivePrice !== offer.price && offer.price > 0 && (
-              <div className="text-[11px] opacity-90 mt-0.5">
-                Effective Total: ${effectivePrice.toFixed(2)} (after deal)
+              <div className="text-[10px] sm:text-[11px] opacity-90">
+                Effective: ${effectivePrice.toFixed(2)} (after deal)
               </div>
             )}
           </div>
 
-          <div className="text-right">
-            <div className="text-xs font-semibold">
-              Total Net Size:
-            </div>
-            <div className="text-sm font-bold">
-              {totalBaseUnits > 1000 && ['g', 'ml'].includes(offer.unit)
-                ? `${(totalBaseUnits / 1000).toFixed(2)} ${
-                    offer.unit === 'g' ? 'kg' : 'L'
-                  }`
-                : `${totalBaseUnits.toFixed(1)} ${offer.unit}`}
-            </div>
-            {isBestValue && savingsPercentage > 0 && totalOffersCount > 1 && (
-              <div className="text-xs font-bold text-emerald-200 bg-emerald-700/80 px-2 py-0.5 rounded-md mt-1 inline-block">
+          {isBestValue && savingsPercentage > 0 && totalOffersCount > 1 && (
+            <div className="text-right">
+              <div className="text-[11px] sm:text-xs font-bold text-emerald-100 bg-emerald-700/80 px-2 py-0.5 rounded-md inline-block">
                 Saves {savingsPercentage}%
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

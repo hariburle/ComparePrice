@@ -334,7 +334,7 @@ export default function App() {
             </div>
 
             {/* Product Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 items-stretch">
               {products.map((offer, idx) => {
                 const comp = comparisons.find((c) => c.productId === offer.id);
 
