@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProductOffer, ReferenceBase, SavedComparison, StandardizedComparison, UnitCategory } from '../types';
 import { getReferenceBaseLabel, formatUnitPrice } from '../utils/units';
-import { Trophy, ArrowDownRight, Award, SlidersHorizontal, BookmarkPlus, History, Check } from 'lucide-react';
+import { Trophy, ArrowDownRight, Award, SlidersHorizontal, BookmarkPlus, History, Check, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ComparisonSummaryProps {
   comparisons: StandardizedComparison[];
@@ -21,6 +21,7 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
   onOpenSavedHistory,
 }) => {
   const [justSaved, setJustSaved] = useState<boolean>(false);
+  const [isCompareByExpanded, setIsCompareByExpanded] = useState<boolean>(false);
 
   if (!comparisons || comparisons.length === 0) return null;
 
@@ -104,32 +105,49 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
   return (
     <div id="comparison-summary-panel" className="space-y-2.5">
       {/* Target Reference Unit Selector Toolbar */}
-      <div className="bg-slate-900 text-white p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
-        <div className="flex items-center gap-1.5">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-[11px] font-semibold tracking-wide uppercase text-slate-300">
-            <span className="hidden sm:inline">Normalize Unit Metric:</span>
-            <span className="sm:hidden">Compare By:</span>
-          </span>
-        </div>
+      <div className="bg-slate-900 text-white rounded-xl shadow-sm overflow-hidden transition-all">
+        <button
+          type="button"
+          onClick={() => setIsCompareByExpanded(!isCompareByExpanded)}
+          className="w-full p-2.5 flex items-center justify-between hover:bg-slate-800/80 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-1.5">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[11px] font-semibold tracking-wide uppercase text-slate-300">
+              <span className="hidden sm:inline">Normalize Unit Metric:</span>
+              <span className="sm:hidden">Compare By:</span>{' '}
+              <span className="text-emerald-400 font-bold ml-1">{getReferenceBaseLabel(referenceBase)}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-[10px] text-slate-400">Change</span>
+            {isCompareByExpanded ? (
+              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            )}
+          </div>
+        </button>
 
-        <div className="flex flex-wrap items-center gap-1">
-          {referenceOptions.map((opt) => (
-            <button
-              key={opt.base}
-              id={`ref-btn-${opt.base}`}
-              type="button"
-              onClick={() => onReferenceBaseChange(opt.base)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                referenceBase === opt.base
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {isCompareByExpanded && (
+          <div className="px-2.5 pb-2.5 pt-1 border-t border-slate-800 flex flex-wrap items-center gap-1 animate-fade-in">
+            {referenceOptions.map((opt) => (
+              <button
+                key={opt.base}
+                id={`ref-btn-${opt.base}`}
+                type="button"
+                onClick={() => onReferenceBaseChange(opt.base)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  referenceBase === opt.base
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Best Deal Winner Banner */}

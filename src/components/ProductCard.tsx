@@ -138,15 +138,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span className="hidden sm:inline">{copiedItem ? 'Copied!' : 'Copy'}</span>
           </button>
           <button
-            id={`scan-btn-${offer.id}`}
-            type="button"
-            onClick={onScanClick}
-            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0"
-            title="Scan Shelf Tag Photo"
-          >
-            <Sparkles className="w-4 h-4" />
-          </button>
-          <button
             id={`duplicate-btn-${offer.id}`}
             type="button"
             onClick={onDuplicate}

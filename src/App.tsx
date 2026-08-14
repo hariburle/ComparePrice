@@ -8,6 +8,7 @@ import { CategoryPresets } from './components/CategoryPresets';
 import { AIScanModal } from './components/AIScanModal';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { WalkthroughGuide } from './components/WalkthroughGuide';
 import { CATEGORY_PRESETS } from './config/presets';
 import {
   Scale,
@@ -18,6 +19,9 @@ import {
   History,
   Smartphone,
   Settings,
+  Menu,
+  ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 
 export default function App() {
@@ -25,6 +29,10 @@ export default function App() {
   // Track if user has started using/customizing the app
   const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [showHelpGuide, setShowHelpGuide] = useState<boolean>(() => {
+    return localStorage.getItem('unit_price_hide_help') !== 'true';
+  });
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
   // Initial offer: start with empty list
   const [products, setProducts] = useState<ProductOffer[]>([]);
@@ -164,59 +172,102 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Streamlined consolidated options dropdown menu */}
+          <div className="relative">
             <button
-              id="header-settings-btn"
+              id="header-menu-btn"
               type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
-              title="Settings"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-1.5 px-3 bg-slate-800 hover:bg-slate-750 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-slate-700/50 cursor-pointer shadow-xs"
+              title="App Options"
             >
-              <Settings className="w-3.5 h-3.5 text-slate-300" />
-              <span className="hidden sm:inline">Settings</span>
+              <Menu className="w-4 h-4 text-emerald-400" />
+              <span>Menu</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            <button
-              id="header-reset-btn"
-              type="button"
-              onClick={handleReset}
-              className="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
-              title="Reset All Items"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
+            {isMenuOpen && (
+              <>
+                {/* Backdrop trigger to close menu on outside tap */}
+                <div 
+                  className="fixed inset-0 z-40 cursor-default" 
+                  onClick={() => setIsMenuOpen(false)} 
+                />
+                <div 
+                  id="header-dropdown-menu"
+                  className="absolute right-0 mt-2 w-52 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-100 py-1.5 z-50 animate-fade-in divide-y divide-slate-100"
+                >
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHelpGuide(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4 text-indigo-500" />
+                      <span>How It Works / Help</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsHistoryModalOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <History className="w-4 h-4 text-amber-500" />
+                      <span>Saved Comparisons</span>
+                    </button>
+                  </div>
 
-            <button
-              id="header-history-btn"
-              type="button"
-              onClick={() => setIsHistoryModalOpen(true)}
-              className="p-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
-              title="Saved Comparisons"
-            >
-              <History className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Saved</span>
-            </button>
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      <span>App Settings</span>
+                    </button>
+                  </div>
 
-            <button
-              id="header-scan-btn"
-              type="button"
-              onClick={() => {
-                setActiveScanIndex(null);
-                setIsScanModalOpen(true);
-              }}
-              className="p-1.5 px-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
-              title="Scan Tag with AI"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span className="hidden sm:inline">AI Scan</span>
-            </button>
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleReset();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-xs font-bold text-rose-600 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4 text-rose-500" />
+                      <span>Reset Calculator</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-3 sm:px-4 py-3 space-y-3">
+        {/* Walkthrough / Explanatory Help Guide */}
+        {showHelpGuide && (
+          <WalkthroughGuide
+            onClose={() => {
+              setShowHelpGuide(false);
+              localStorage.setItem('unit_price_hide_help', 'true');
+            }}
+          />
+        )}
+
         {/* Scan Feedback Banner */}
         {scanToast && (
           <div className="p-3 bg-indigo-900 text-white rounded-2xl text-xs font-bold shadow-lg border border-indigo-700 flex items-center justify-between animate-fade-in">
@@ -249,7 +300,7 @@ export default function App() {
               </p>
             </div>
 
-            <div className="w-full space-y-3 pt-2">
+            <div className="w-full space-y-2 pt-2">
               <button
                 id="empty-add-btn"
                 type="button"
@@ -258,6 +309,19 @@ export default function App() {
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>Add Your First Item</span>
+              </button>
+
+              <button
+                id="empty-scan-btn"
+                type="button"
+                onClick={() => {
+                  setActiveScanIndex(null);
+                  setIsScanModalOpen(true);
+                }}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.99] cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>Scan Store Label / Tag</span>
               </button>
 
               <div className="relative flex py-2 items-center">
@@ -360,25 +424,49 @@ export default function App() {
                 );
               })}
 
-              {/* Add Offer Card in Grid */}
-              <button
-                id="add-offer-btn"
-                type="button"
-                onClick={handleAddProduct}
-                className="group relative bg-white/90 hover:bg-emerald-50/60 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-5 transition-all duration-200 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[220px] gap-2 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-[0.99] shadow-xs hover:shadow-md cursor-pointer"
-              >
-                <div className="w-11 h-11 rounded-full bg-emerald-100/80 group-hover:bg-emerald-500 text-emerald-700 group-hover:text-white flex items-center justify-center transition-colors shadow-xs">
-                  <Plus className="w-5 h-5 stroke-[2.5]" />
-                </div>
-                <div>
-                  <span className="block font-black text-xs sm:text-sm text-slate-800 group-hover:text-emerald-950">
-                    Add Another Item / Offer
-                  </span>
-                  <span className="block text-[11px] sm:text-xs text-slate-500 group-hover:text-emerald-700 mt-0.5">
-                    Compare price per unit for another option
-                  </span>
-                </div>
-              </button>
+              {/* Add / Scan Choice Card in Grid */}
+              <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col justify-center min-h-[160px] sm:min-h-[220px] gap-2">
+                <button
+                  id="add-offer-btn"
+                  type="button"
+                  onClick={handleAddProduct}
+                  className="flex-1 flex items-center gap-3 p-3 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200/60 hover:border-emerald-300 rounded-xl transition-all cursor-pointer group text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="block font-bold text-xs sm:text-sm text-slate-800">
+                      Add Another Item
+                    </span>
+                    <span className="block text-[10px] text-slate-500">
+                      Type details manually
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  id="scan-offer-btn"
+                  type="button"
+                  onClick={() => {
+                    setActiveScanIndex(null);
+                    setIsScanModalOpen(true);
+                  }}
+                  className="flex-1 flex items-center gap-3 p-3 bg-slate-50 hover:bg-indigo-50/60 border border-slate-200/60 hover:border-indigo-300 rounded-xl transition-all cursor-pointer group text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                    <Sparkles className="w-4 h-4 text-indigo-600 group-hover:text-amber-300" />
+                  </div>
+                  <div>
+                    <span className="block font-bold text-xs sm:text-sm text-slate-800">
+                      Scan Store Label / Tag
+                    </span>
+                    <span className="block text-[10px] text-slate-500">
+                      Auto-extract with AI camera
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
           </>
         )}

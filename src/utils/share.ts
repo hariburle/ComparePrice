@@ -49,7 +49,22 @@ export async function shareItem(
   const text = formatItemText(offer, referenceBase, isBestValue);
   const title = offer.name.trim() || 'Shopping Item';
 
-  // Use Native Share API whenever available (mobile Chrome, Safari, Android WebView/Capacitor)
+  // Try native Capacitor Share plugin first if running in an APK wrapper
+  const cap = (window as any).Capacitor;
+  if (cap && cap.Plugins && cap.Plugins.Share) {
+    try {
+      await cap.Plugins.Share.share({
+        title,
+        text,
+        dialogTitle: 'Share Item Details',
+      });
+      return 'shared';
+    } catch (err) {
+      console.warn('Capacitor native share failed, falling back:', err);
+    }
+  }
+
+  // Use standard Web Share API whenever available (mobile Chrome, Safari, etc.)
   if (navigator.share) {
     try {
       await navigator.share({
@@ -62,7 +77,7 @@ export async function shareItem(
         // User closed or canceled native share sheet
         return 'shared';
       }
-      console.warn('Native share failed, falling back to clipboard copy:', err);
+      console.warn('Web share failed, falling back to clipboard copy:', err);
     }
   }
 
