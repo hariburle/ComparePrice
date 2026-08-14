@@ -1,5 +1,6 @@
 import { ProductOffer, ReferenceBase } from '../types';
 import { calculateEffectivePrice, calculateTotalBaseUnits, formatUnitPrice, getReferenceBaseUnitFactor } from './units';
+import { Share } from '@capacitor/share';
 
 export function formatItemText(
   offer: ProductOffer,
@@ -50,18 +51,15 @@ export async function shareItem(
   const title = offer.name.trim() || 'Shopping Item';
 
   // Try native Capacitor Share plugin first if running inside APK wrapper
-  const cap = (window as any).Capacitor;
-  if (cap && cap.Plugins && cap.Plugins.Share) {
-    try {
-      await cap.Plugins.Share.share({
-        title,
-        text,
-        dialogTitle: 'Share Item Details',
-      });
-      return 'shared';
-    } catch (err) {
-      console.warn('Capacitor native share failed, falling back:', err);
-    }
+  try {
+    await Share.share({
+      title,
+      text,
+      dialogTitle: 'Share Item Details',
+    });
+    return 'shared';
+  } catch (err) {
+    console.warn('Capacitor native share failed, falling back to web Share API:', err);
   }
 
   // Use standard Web Share API whenever available (mobile Chrome, Safari, etc.)

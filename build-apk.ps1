@@ -64,11 +64,11 @@ if ([string]::IsNullOrEmpty($env:ANDROID_HOME)) {
 
 # 3. Check / Install Capacitor dependencies
 Write-Host "`n[2/6] Ensuring Capacitor dependencies are installed..." -ForegroundColor Cyan
-if (!(Test-Path "node_modules/@capacitor/core")) {
-    Write-Host "    Installing Capacitor CLI and Android runtime..." -ForegroundColor Yellow
-    npm install @capacitor/core @capacitor/cli @capacitor/android --save-dev
+if (!(Test-Path "node_modules/@capacitor/core") -or !(Test-Path "node_modules/@capacitor/share")) {
+    Write-Host "    Installing Capacitor CLI, Android runtime, and Share plugin..." -ForegroundColor Yellow
+    npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/share
 } else {
-    Write-Host "[+] Capacitor dependencies found in node_modules." -ForegroundColor Green
+    Write-Host "[+] Capacitor dependencies and Share plugin found in node_modules." -ForegroundColor Green
 }
 
 # 4. Build Vite Static Assets
