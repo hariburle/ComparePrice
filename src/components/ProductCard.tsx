@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProductOffer, ReferenceBase, UnitType } from '../types';
 import { calculateEffectivePrice, calculateTotalBaseUnits, formatUnitLabel, formatUnitPrice, getReferenceBaseUnitFactor } from '../utils/units';
-import { Trash2, Copy, Sparkles, Tag, ChevronDown, ChevronUp, Store, Package, Check, Share2, CopyPlus } from 'lucide-react';
+import { Trash2, Copy, Sparkles, Tag, ChevronDown, ChevronUp, Store, Package, Check, Share2, CopyPlus, Barcode } from 'lucide-react';
 import { formatItemText, copyTextToClipboard, shareItem } from '../utils/share';
 import { isDebugEnabled } from '../config/debug';
 
@@ -106,6 +106,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           )}
 
+          {offer.barcode && (
+            <span
+              className="text-[10px] font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1 whitespace-nowrap shrink-0"
+              title={`UPC/Barcode: ${offer.barcode}`}
+            >
+              <Barcode className="w-3 h-3 text-slate-500 shrink-0" />
+              <span>{offer.barcode}</span>
+            </span>
+          )}
+
           {isDebugEnabled() && offer.scannedByMethod && (
             <span
               className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap shrink-0"
@@ -124,10 +134,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             type="button"
             onClick={onScanClick}
             className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2 shrink-0 border border-indigo-200/70"
-            title="Scan / re-scan shelf tag for this item"
+            title="Scan item, price tag, or barcode"
           >
             <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden xs:inline sm:inline">Scan Tag</span>
+            <span className="hidden xs:inline sm:inline">Scan Item/Tag</span>
           </button>
           <button
             type="button"

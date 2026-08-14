@@ -1,12 +1,14 @@
-import React from 'react';
-import { BookOpen, Check, HelpCircle, Info, Plus, Scale, Sparkles, TrendingDown, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, Check, ExternalLink, HelpCircle, Info, Key, Plus, Scale, Sparkles, TrendingDown, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface WalkthroughGuideProps {
   onClose: () => void;
+  onOpenSettings?: () => void;
   className?: string;
 }
 
-export const WalkthroughGuide: React.FC<WalkthroughGuideProps> = ({ onClose, className = '' }) => {
+export const WalkthroughGuide: React.FC<WalkthroughGuideProps> = ({ onClose, onOpenSettings, className = '' }) => {
+  const [showApiKeyGuide, setShowApiKeyGuide] = useState<boolean>(false);
   return (
     <div
       id="walkthrough-guide"
@@ -89,6 +91,81 @@ export const WalkthroughGuide: React.FC<WalkthroughGuideProps> = ({ onClose, cla
             <span>Sometimes the larger size is actually more expensive! Check carefully.</span>
           </div>
         </div>
+      </div>
+
+      {/* Free Unlimited AI Scans & API Key Help Section */}
+      <div className="mt-4 bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+              <Key className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-800">
+                How to Get Free Unlimited AI Scans (Free Gemini API Key)
+              </h4>
+              <p className="text-[10px] text-slate-500">
+                100% free from Google AI Studio &bull; Takes less than 1 minute
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowApiKeyGuide(!showApiKeyGuide)}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors"
+          >
+            <span>{showApiKeyGuide ? 'Hide Instructions' : 'View Steps'}</span>
+            {showApiKeyGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+
+        {showApiKeyGuide && (
+          <div className="pt-2 border-t border-slate-200/70 space-y-2 text-[11px] text-slate-600 animate-fade-in">
+            <ol className="space-y-1.5 list-decimal list-inside pl-1 text-slate-700">
+              <li>
+                Visit Google's developer portal at{' '}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-600 font-bold underline inline-flex items-center gap-0.5"
+                >
+                  aistudio.google.com/app/apikey <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </li>
+              <li>Sign in with your regular Google account.</li>
+              <li>
+                Click the blue <b className="text-slate-900 font-semibold">"Create API Key"</b> button.
+              </li>
+              <li>
+                Copy the generated key (it starts with <code className="bg-slate-200 px-1 rounded text-[10px]">AIzaSy...</code>).
+              </li>
+              <li>
+                Open <b className="text-slate-900 font-semibold">App Settings</b> (or the AI Scanner) and paste your key.
+              </li>
+            </ol>
+
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors"
+              >
+                <span>Get Free Gemini Key ↗</span>
+              </a>
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
+                >
+                  <span>Open App Settings</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer info & Dismiss Action */}

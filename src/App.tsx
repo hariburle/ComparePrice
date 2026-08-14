@@ -141,6 +141,8 @@ export default function App() {
         dealType: 'none',
         dealValue: 0,
         storeName: scannedData.storeName || '',
+        brand: scannedData.brand || '',
+        barcode: scannedData.barcode || '',
         scannedByMethod: scannedData.scannedByMethod,
       };
       setProducts([...products, newOffer]);
@@ -265,6 +267,7 @@ export default function App() {
               setShowHelpGuide(false);
               localStorage.setItem('unit_price_hide_help', 'true');
             }}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
         )}
 
@@ -321,7 +324,7 @@ export default function App() {
                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.99] cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Scan Store Label / Tag</span>
+                <span>Scan Item, Tag, or Barcode</span>
               </button>
 
               <div className="relative flex py-2 items-center">
@@ -459,10 +462,10 @@ export default function App() {
                   </div>
                   <div>
                     <span className="block font-bold text-xs sm:text-sm text-slate-800">
-                      Scan Store Label / Tag
+                      Scan Item, Tag, or Barcode
                     </span>
                     <span className="block text-[10px] text-slate-500">
-                      Auto-extract with AI camera
+                      AI camera instant recognition
                     </span>
                   </div>
                 </button>

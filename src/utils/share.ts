@@ -16,9 +16,10 @@ export function formatItemText(
   const store = offer.storeName?.trim() ? ` @ ${offer.storeName.trim()}` : '';
   const price = `$${effectivePrice.toFixed(2)}`;
   const size = `${offer.size || 1} ${offer.unit}${offer.packCount > 1 ? ` (${offer.packCount}-pack)` : ''}`;
+  const barcodeTag = offer.barcode ? ` [UPC: ${offer.barcode}]` : '';
   const bestTag = isBestValue ? ' [Best Deal]' : '';
 
-  return `${name}${store} - ${price} (${size}) - ${formatUnitPrice(unitPrice)}/${referenceBase}${bestTag}`;
+  return `${name}${store} - ${price} (${size}) - ${formatUnitPrice(unitPrice)}/${referenceBase}${barcodeTag}${bestTag}`;
 }
 
 export async function copyTextToClipboard(text: string): Promise<boolean> {

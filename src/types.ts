@@ -34,6 +34,7 @@ export interface ProductOffer {
   dealValue: number; // e.g. 20 for 20% off, 1 for $1 off
   storeName?: string;
   brand?: string;
+  barcode?: string;
   notes?: string;
   scannedByMethod?: string;
 }

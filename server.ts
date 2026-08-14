@@ -43,34 +43,65 @@ async function startServer() {
 
       const ai = new GoogleGenAI({ apiKey });
 
-      const prompt = `Analyze this store shelf price label, product tag, or item package photo.
-Extract the product details and return a strict JSON object:
+      const prompt = `Analyze this grocery or retail item photo. It can be ANY of the following:
+1. An actual store item or product (e.g., fruit/produce, can of soup, bottle of olive oil, detergent, cereal box).
+2. A store shelf price tag / label.
+3. A product barcode or UPC/EAN code (1D or 2D).
+4. Product packaging, nutrition facts label, or box.
+
+Extract the product details and return a strict JSON object with NO markdown formatting:
 {
-  "name": "Product name or short description",
+  "name": "Product name or description (e.g. 'Honeycrisp Apples', 'Campbell's Tomato Soup', 'Whole Milk 1 Gallon')",
   "price": 0.00,
   "size": 0,
   "unit": "g" | "kg" | "oz" | "lb" | "ml" | "l" | "floz" | "gal" | "count" | "sheets" | "loads",
   "packCount": 1,
   "storeName": "Store name if visible or empty string",
-  "brand": "Brand name if visible or empty string"
+  "brand": "Brand name if visible or empty string",
+  "barcode": "Barcode / UPC digits if visible or readable, else empty string"
 }
 
 Guidance:
-- "price": numerical total shelf price (e.g. 4.99).
-- "size": total size per item (e.g. 500 for 500g, or 2 for 2L, or 12 for 12 oz).
-- "unit": choose best fit among g, kg, oz, lb, ml, l, floz, gal, count, sheets, loads.
-- "packCount": e.g. 12 if it says "12 pack", or 1 if single item.
-- If data is ambiguous, provide your best estimation based on standard retail tags.`;
+- If photo shows an item/produce/product: identify the product name, brand, and any visible net weight/size or count. If price is not visible on the item, set price to 0.00 so the user can enter the shelf price.
+- If photo shows a shelf price tag: extract the numerical price, product name, net weight/size, unit, pack count, and store name.
+- If photo shows a barcode/UPC: extract the exact barcode digits and identify the corresponding product name/size if recognized.
+- Choose unit best fit among g, kg, oz, lb, ml, l, floz, gal, count, sheets, loads.
+- "packCount": e.g. 12 if it says "12 pack", 6 for 6-pack, or 1 for single item.
+- Provide clean, concise product names.`;
 
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-      // Prioritize high-throughput fast model with fallbacks
+      // Helper to determine if an error is temporary and eligible for a retry
+      const isTransientError = (err: any): boolean => {
+        const status = err?.status || err?.code || err?.error?.code || 0;
+        const msg = String(err?.message || err?.error?.message || '').toLowerCase();
+        
+        // Non-retryable client / auth errors: fail-fast
+        if (status === 400 || status === 401 || status === 403 || status === 404) {
+          return false;
+        }
+        if (msg.includes('api key not valid') || msg.includes('permission_denied') || msg.includes('invalid argument')) {
+          return false;
+        }
+
+        // Retryable conditions: 503 high demand, 429 rate limits, 502/504 gateways, transient network resets
+        if (status === 503 || status === 429 || status === 500 || status === 502 || status === 504) {
+          return true;
+        }
+        if (msg.includes('high demand') || msg.includes('unavailable') || msg.includes('quota') || msg.includes('timeout') || msg.includes('econnreset')) {
+          return true;
+        }
+        return false;
+      };
+
+      // Bounded models list with strictly capped attempts (max 2 per model)
       const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest'];
+      const MAX_ATTEMPTS_PER_MODEL = 2;
       let response: any = null;
       let lastError: any = null;
 
       for (const model of modelsToTry) {
-        for (let attempt = 1; attempt <= 2; attempt++) {
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
           try {
             response = await ai.models.generateContent({
               model,
@@ -87,20 +118,30 @@ Guidance:
                 responseMimeType: 'application/json',
               },
             });
+
             if (response?.text) {
-              break;
+              break; // Success: exit attempt loop
             }
           } catch (err: any) {
             lastError = err;
-            const code = err?.status || err?.code || err?.error?.code;
-            const msg = err?.message || 'Error calling model';
-            console.log(`[Scan API] Model ${model} (attempt ${attempt}) returned status ${code || 'unavailable'}: ${msg.slice(0, 120)}`);
-            // If 503 or transient congestion, wait briefly before next attempt
-            if (attempt === 1) {
-              await new Promise((resolve) => setTimeout(resolve, 600));
+            const status = err?.status || err?.code || err?.error?.code;
+            const msg = String(err?.message || 'Error calling model');
+            console.log(`[Scan API] Model ${model} (attempt ${attempt}/${MAX_ATTEMPTS_PER_MODEL}) error [${status || 'ERR'}]: ${msg.slice(0, 100)}`);
+
+            // Only retry if error is transient AND we haven't reached the attempt cap
+            const canRetry = attempt < MAX_ATTEMPTS_PER_MODEL && isTransientError(err);
+            if (canRetry) {
+              // Backoff delay: 600ms before second attempt
+              const backoffMs = attempt * 600;
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            } else {
+              // If error is not transient (e.g. 404 model not found, 401 auth), don't waste time retrying this model
+              break;
             }
           }
         }
+
+        // If we got a valid response, exit model cascade
         if (response?.text) {
           break;
         }

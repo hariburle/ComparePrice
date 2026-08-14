@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, X, Key, DollarSign, Scale, Check, Sparkles } from 'lucide-react';
+import { Settings, X, Key, DollarSign, Scale, Check, Sparkles, ExternalLink, HelpCircle } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -118,41 +118,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         </div>
 
         {/* AI Vision Key Setting */}
-        <div className="space-y-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+        <div className="space-y-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
           <div className="flex items-center justify-between flex-wrap gap-1">
             <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Key className="w-4 h-4 text-amber-500" />
-              <span>Gemini AI Vision Key</span>
+              <span>Gemini AI Vision Key (Free Unlimited Scans)</span>
             </label>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
-              {hasEnvKey ? 'Built-in Active' : apiKey ? 'Custom Active' : 'Fallback OCR Active'}
+              {hasEnvKey ? 'Built-in Active' : apiKey ? 'Custom Key Active' : 'Fallback OCR Active'}
             </span>
           </div>
 
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            AI Vision scans store price tags directly. When using an Android APK offline or standalone, paste a free Google AI Studio key here to run Gemini directly on your phone without a backend server.
+            Add your personal Google Gemini API key to unlock unlimited AI scans in your browser or on Android without hitting demo limits.
           </p>
+
+          {/* Quick guide steps */}
+          <div className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1 text-[11px] text-slate-600">
+            <div className="font-bold text-slate-800 flex items-center justify-between">
+              <span>How to get a free key (100% free, takes 30s):</span>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-0.5 underline"
+              >
+                Open Google AI Studio <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+            <ol className="list-decimal list-inside pl-0.5 space-y-0.5 text-[10.5px] text-slate-500">
+              <li>Visit <b>aistudio.google.com/app/apikey</b> and log in with Google.</li>
+              <li>Click <b>"Create API Key"</b>.</li>
+              <li>Paste your key below and click "Save Preferences".</li>
+            </ol>
+          </div>
 
           <input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={hasEnvKey ? 'Using built-in Gemini API Key' : 'Paste Gemini API Key (optional)'}
+            placeholder={hasEnvKey ? 'Using built-in Gemini API Key' : 'Paste Gemini API Key (starts with AIzaSy...)'}
             className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
 
-          <p className="text-[10px] text-slate-400">
-            Get a free key at{' '}
-            <a
-              href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noreferrer"
-              className="text-indigo-600 underline font-medium"
+          {apiKey && (
+            <button
+              type="button"
+              onClick={() => setApiKey('')}
+              className="text-[10px] text-rose-600 hover:text-rose-700 font-semibold underline block"
             >
-              aistudio.google.com/app/apikey
-            </a>
-          </p>
+              Clear saved custom key
+            </button>
+          )}
         </div>
 
         {/* Save Button */}

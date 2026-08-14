@@ -87,19 +87,24 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
   },
   {
     phase: 4,
-    title: 'AI Smart Shelf Tag & Label Scanner',
+    title: 'AI Smart Tag, Barcode & Package Scanner',
     status: 'completed',
-    description: 'Hands-free AI computer vision OCR to extract price tag data instantly from shelf labels.',
+    description: 'Hands-free AI computer vision to extract price tag data, product barcodes / UPCs, and packaging specs.',
     features: [
       {
-        name: 'AI Vision Tag Scanner',
-        description: 'Snap or upload a photo of a store shelf tag to auto-detect price, package net weight/volume, and title.',
+        name: 'AI Vision Tag & Barcode Scanner',
+        description: 'Snap or upload a photo of a store shelf tag, 1D/2D barcode/UPC, or product package to auto-detect price, package net weight/volume, barcode number, and product title.',
         icon: 'Camera',
+      },
+      {
+        name: 'Target Reticle Auto-Cropping',
+        description: 'Live interactive camera viewfinder with auto-crop for shelf tags and barcodes to remove background aisle noise.',
+        icon: 'Zap',
       },
       {
         name: 'Instant Offer Pre-population',
         description: 'Auto-fill comparison cards directly from photos without typing numbers manually.',
-        icon: 'Zap',
+        icon: 'Sparkles',
       },
     ],
   },
