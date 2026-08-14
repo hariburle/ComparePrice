@@ -41,17 +41,10 @@ async function startServer() {
         return res.status(400).json({ error: 'imageBase64 string is required.' });
       }
 
-      const ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
-        },
-      });
+      const ai = new GoogleGenAI({ apiKey });
 
       const prompt = `Analyze this store shelf price label, product tag, or item package photo.
-Extract the product details and return ONLY a strict JSON object with no markdown formatting or commentary:
+Extract the product details and return a strict JSON object:
 {
   "name": "Product name or short description",
   "price": 0.00,
@@ -72,7 +65,7 @@ Guidance:
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.7-flash',
+        model: 'gemini-2.5-flash',
         contents: [
           prompt,
           {
@@ -82,10 +75,12 @@ Guidance:
             },
           },
         ],
+        config: {
+          responseMimeType: 'application/json',
+        },
       });
 
       const responseText = response.text || '';
-      // Clean JSON if code block wrapper present
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
@@ -95,7 +90,7 @@ Guidance:
       }
     } catch (error: any) {
       console.error('Scan label error:', error);
-      res.status(500).json({ error: error.message || 'Error processing label scan' });
+      res.status(500).json({ error: error?.message || 'Error processing label scan' });
     }
   });
 
