@@ -33,6 +33,12 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [debugActive, setDebugActive] = useState<boolean>(isDebugEnabled());
   const [customApiKey, setCustomApiKey] = useState<string>('');
+  const [scanCount, setScanCount] = useState<number>(0);
+
+  const isNativeApp = Boolean(
+    (window as any).Capacitor?.isNativePlatform?.() ||
+    ((window as any).Capacitor?.getPlatform && (window as any).Capacitor.getPlatform() !== 'web')
+  );
 
   // Live Camera State
   const [isLiveCameraActive, setIsLiveCameraActive] = useState<boolean>(false);
@@ -50,6 +56,8 @@ export const AIScanModal: React.FC<AIScanModalProps> = ({
     if (isOpen) {
       const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
       setCustomApiKey(savedKey);
+      const count = parseInt(localStorage.getItem('unit_price_scan_count') || '0', 10);
+      setScanCount(count);
     }
   }, [isOpen]);
 
@@ -252,7 +260,7 @@ Guidance:
       return JSON.parse(jsonMatch[0]);
     };
 
-    const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+    const candidateModels = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
     let lastError: Error | null = null;
 
     for (const modelName of candidateModels) {
@@ -307,57 +315,67 @@ Guidance:
 
     try {
       const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
-      const apiKey = customApiKey.trim() || savedKey.trim() || activeApiKey;
+      const customKey = customApiKey.trim() || savedKey.trim();
       const isGitHubPages = window.location.hostname.endsWith('.github.io');
 
-      if (apiKey) {
-        try {
-          setScanStatus('Scanning shelf tag with Gemini AI...');
-          const scanned = await parseWithClientSideGemini(apiKey, imagePreview, mimeType);
-          applyScannedData(scanned, 'Gemini AI Vision');
-          return;
-        } catch (clientErr: any) {
-          console.error('Client Gemini Error:', clientErr);
-          setError(`Gemini API Error: ${clientErr.message || 'Invalid key'}. Falling back to WebAssembly OCR...`);
-        }
-      }
+      const isOverLimit = scanCount >= 5;
+      const hasSelfProvidedKey = Boolean(customKey);
+      const shouldLimit = !isNativeApp && !hasSelfProvidedKey && isOverLimit;
 
-      // Try backend endpoints (local relative first, then remote hosted Cloud Run server for mobile APKs)
-      const endpoints = ['/api/scan-label'];
-      // If in APK or local origin, add the Cloud Run hosted server URL as a fallback endpoint
-      if (
-        window.location.protocol === 'file:' ||
-        window.location.protocol === 'capacitor:' ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1'
-      ) {
-        endpoints.push('https://ais-dev-a4rlkvkyfegjfuv35v5gbz-712313410791.us-east1.run.app/api/scan-label');
-      }
-
-      if (!isGitHubPages) {
-        for (const endpoint of endpoints) {
+      if (!shouldLimit) {
+        if (hasSelfProvidedKey) {
           try {
             setScanStatus('Scanning shelf tag with Gemini AI...');
-            const response = await fetch(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                imageBase64: imagePreview,
-                mimeType,
-              }),
-            });
+            const scanned = await parseWithClientSideGemini(customKey, imagePreview, mimeType);
+            applyScannedData(scanned, 'Gemini AI Vision');
+            return;
+          } catch (clientErr: any) {
+            console.error('Client Gemini Error:', clientErr);
+            setError(`Gemini API Error: ${clientErr.message || 'Invalid key'}. Falling back to WebAssembly OCR...`);
+          }
+        } else {
+          // Backend API scan endpoint using server-side Gemini
+          const endpoints = ['/api/scan-label'];
+          if (
+            window.location.protocol === 'file:' ||
+            window.location.protocol === 'capacitor:' ||
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1'
+          ) {
+            endpoints.push('https://ais-dev-a4rlkvkyfegjfuv35v5gbz-712313410791.us-east1.run.app/api/scan-label');
+          }
 
-            if (response.ok) {
-              const resData = await response.json();
-              if (resData?.success) {
-                applyScannedData(resData.data, 'Gemini AI Vision');
-                return;
+          if (!isGitHubPages) {
+            for (const endpoint of endpoints) {
+              try {
+                setScanStatus('Scanning shelf tag with Gemini AI...');
+                const response = await fetch(endpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    imageBase64: imagePreview,
+                    mimeType,
+                  }),
+                });
+
+                if (response.ok) {
+                  const resData = await response.json();
+                  if (resData?.success) {
+                    applyScannedData(resData.data, 'Gemini AI Vision');
+                    return;
+                  }
+                } else {
+                  const resErr = await response.json().catch(() => ({}));
+                  console.warn(`Backend API scan error on ${endpoint}:`, resErr);
+                }
+              } catch (err: any) {
+                console.warn(`Backend API scan failed at endpoint ${endpoint}:`, err);
               }
             }
-          } catch (err: any) {
-            console.warn(`Backend API scan failed at endpoint ${endpoint}:`, err);
           }
         }
+      } else {
+        setScanStatus('Free AI scans limit reached (5/5). Using free local OCR fallback...');
       }
 
       try {
@@ -390,6 +408,16 @@ Guidance:
 
   const applyScannedData = (scanned: any, method: string) => {
     setScanStatus(`✨ Successfully extracted via ${method}!`);
+    
+    const savedKey = localStorage.getItem('unit_price_gemini_key') || '';
+    const hasSelfProvidedKey = Boolean(customApiKey.trim() || savedKey.trim());
+    
+    if (method === 'Gemini AI Vision' && !isNativeApp && !hasSelfProvidedKey) {
+      const nextCount = scanCount + 1;
+      localStorage.setItem('unit_price_scan_count', nextCount.toString());
+      setScanCount(nextCount);
+    }
+
     setTimeout(() => {
       onScannedOffer({
         name: scanned.name || 'Scanned Label Item',
@@ -456,6 +484,67 @@ Guidance:
         <p className="text-xs text-slate-500">
           Capture a store tag directly using your live camera or pick a picture from your library.
         </p>
+
+        {/* Limit Warning banner - only in browser and without custom key */}
+        {!isNativeApp && !customApiKey.trim() && (
+          <div
+            id="ai-scan-quota-banner"
+            className={`p-3 rounded-2xl text-xs flex items-start gap-2.5 border transition-all ${
+              scanCount >= 5
+                ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-sm'
+                : 'bg-indigo-50/80 border-indigo-200 text-indigo-950'
+            }`}
+          >
+            <Sparkles
+              className={`w-4 h-4 shrink-0 mt-0.5 ${
+                scanCount >= 5 ? 'text-amber-600' : 'text-indigo-600'
+              }`}
+            />
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-slate-900">
+                  {scanCount >= 5
+                    ? 'Free AI Scan Quota Reached (5/5)'
+                    : `Free AI Scans: ${scanCount}/5 used`}
+                </span>
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    scanCount >= 5
+                      ? 'bg-amber-200 text-amber-900'
+                      : 'bg-indigo-200 text-indigo-900'
+                  }`}
+                >
+                  {scanCount >= 5 ? 'Quota Reached' : `${5 - scanCount} left`}
+                </span>
+              </div>
+
+              {/* Visual usage progress bar */}
+              <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    scanCount >= 5 ? 'bg-amber-500' : 'bg-indigo-600'
+                  }`}
+                  style={{ width: `${Math.min(100, (scanCount / 5) * 100)}%` }}
+                />
+              </div>
+
+              <p className="text-[11px] text-slate-600 leading-normal">
+                {scanCount >= 5
+                  ? 'Local WebAssembly OCR is now active as free offline fallback. Enter your own free Gemini API key in Settings to enjoy unlimited AI scans!'
+                  : 'You get 5 free Gemini AI scans in the browser preview. Add your own free Gemini API key in Settings anytime to remove all limits.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!isNativeApp && customApiKey.trim() && (
+          <div className="p-2.5 rounded-xl text-xs flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-950">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-[11px] font-semibold text-emerald-900">
+              Custom Gemini API key active &bull; Unlimited AI scans enabled
+            </span>
+          </div>
+        )}
 
         {/* Live Camera Viewfinder Screen */}
         {isLiveCameraActive ? (

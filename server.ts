@@ -41,7 +41,14 @@ async function startServer() {
         return res.status(400).json({ error: 'imageBase64 string is required.' });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
 
       const prompt = `Analyze this store shelf price label, product tag, or item package photo.
 Extract the product details and return ONLY a strict JSON object with no markdown formatting or commentary:
@@ -65,7 +72,7 @@ Guidance:
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
         contents: [
           prompt,
           {

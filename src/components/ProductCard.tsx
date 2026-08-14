@@ -120,6 +120,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Card Actions */}
         <div className="flex items-center gap-0.5 ml-auto">
           <button
+            id={`scan-btn-${offer.id}`}
+            type="button"
+            onClick={onScanClick}
+            className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2 shrink-0 border border-indigo-200/70"
+            title="Scan / re-scan shelf tag for this item"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden xs:inline sm:inline">Scan Tag</span>
+          </button>
+          <button
             type="button"
             onClick={handleShare}
             className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2 shrink-0"
