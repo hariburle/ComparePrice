@@ -64,21 +64,51 @@ Guidance:
 
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          prompt,
-          {
-            inlineData: {
-              data: cleanBase64,
-              mimeType: mimeType || 'image/jpeg',
-            },
-          },
-        ],
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+      // Prioritize high-throughput fast model with fallbacks
+      const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest'];
+      let response: any = null;
+      let lastError: any = null;
+
+      for (const model of modelsToTry) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            response = await ai.models.generateContent({
+              model,
+              contents: [
+                prompt,
+                {
+                  inlineData: {
+                    data: cleanBase64,
+                    mimeType: mimeType || 'image/jpeg',
+                  },
+                },
+              ],
+              config: {
+                responseMimeType: 'application/json',
+              },
+            });
+            if (response?.text) {
+              break;
+            }
+          } catch (err: any) {
+            lastError = err;
+            const code = err?.status || err?.code || err?.error?.code;
+            const msg = err?.message || 'Error calling model';
+            console.log(`[Scan API] Model ${model} (attempt ${attempt}) returned status ${code || 'unavailable'}: ${msg.slice(0, 120)}`);
+            // If 503 or transient congestion, wait briefly before next attempt
+            if (attempt === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 600));
+            }
+          }
+        }
+        if (response?.text) {
+          break;
+        }
+      }
+
+      if (!response?.text) {
+        throw lastError || new Error('Vision models are currently experiencing high demand. Please try again or use local OCR.');
+      }
 
       const responseText = response.text || '';
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
