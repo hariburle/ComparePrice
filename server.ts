@@ -95,7 +95,7 @@ Guidance:
       };
 
       // Bounded models list with strictly capped attempts (max 2 per model)
-      const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest'];
+      const modelsToTry = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
       const MAX_ATTEMPTS_PER_MODEL = 2;
       let response: any = null;
       let lastError: any = null;

@@ -327,6 +327,16 @@ export default function App() {
                 <span>Scan Item, Tag, or Barcode</span>
               </button>
 
+              <button
+                id="empty-load-saved-btn"
+                type="button"
+                onClick={() => setIsHistoryModalOpen(true)}
+                className="w-full bg-amber-50 hover:bg-amber-100 text-amber-950 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border border-amber-200 shadow-sm active:scale-[0.99] cursor-pointer"
+              >
+                <History className="w-4 h-4 text-amber-600" />
+                <span>Start from Saved Comparison</span>
+              </button>
+
               <div className="relative flex py-2 items-center">
                 <div className="flex-grow border-t border-slate-200"></div>
                 <span className="flex-shrink mx-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">or pick a preset</span>
@@ -448,7 +458,7 @@ export default function App() {
                   </div>
                 </button>
 
-                <button
+                 <button
                   id="scan-offer-btn"
                   type="button"
                   onClick={() => {
@@ -466,6 +476,25 @@ export default function App() {
                     </span>
                     <span className="block text-[10px] text-slate-500">
                       AI camera instant recognition
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  id="grid-load-saved-btn"
+                  type="button"
+                  onClick={() => setIsHistoryModalOpen(true)}
+                  className="flex-1 flex items-center gap-3 p-3 bg-slate-50 hover:bg-amber-50/60 border border-slate-200/60 hover:border-amber-300 rounded-xl transition-all cursor-pointer group text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                    <History className="w-4 h-4 text-amber-600 group-hover:text-white" />
+                  </div>
+                  <div>
+                    <span className="block font-bold text-xs sm:text-sm text-slate-800">
+                      Load Saved Comparison
+                    </span>
+                    <span className="block text-[10px] text-slate-500">
+                      Restore a previous calculation
                     </span>
                   </div>
                 </button>

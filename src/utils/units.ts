@@ -92,6 +92,18 @@ export function calculateEffectivePrice(product: ProductOffer): number {
       if (product.dealValue > 0) return product.dealValue;
       return basePrice;
     }
+    case 'new_price': {
+      // New Sale/Digital Price directly replaces original price
+      if (product.dealValue > 0) return product.dealValue;
+      return basePrice;
+    }
+    case 'buy_x_save_y': {
+      // Buy X, Save $Y each (e.g., Kroger Mix & Match)
+      // product.quantity is X, product.dealValue is Y (discount per item)
+      const reqQty = Math.max(1, product.quantity || 1);
+      const discountPerItem = product.dealValue || 0;
+      return reqQty * Math.max(0, basePrice - discountPerItem);
+    }
     case 'none':
     default:
       return basePrice;

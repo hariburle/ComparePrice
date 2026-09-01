@@ -351,7 +351,7 @@ Guidance:
       return JSON.parse(jsonMatch[0]);
     };
 
-    const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest'];
+    const candidateModels = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
     let lastError: Error | null = null;
 
     for (const modelName of candidateModels) {

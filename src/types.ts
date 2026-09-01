@@ -20,7 +20,7 @@ export type ReferenceBase =
   | '100sheets'
   | '1load';
 
-export type DealType = 'none' | 'percent_off' | 'flat_off' | 'bogo_free' | 'bogo_half' | 'multi_buy';
+export type DealType = 'none' | 'percent_off' | 'flat_off' | 'bogo_free' | 'bogo_half' | 'multi_buy' | 'new_price' | 'buy_x_save_y';
 
 export interface ProductOffer {
   id: string;

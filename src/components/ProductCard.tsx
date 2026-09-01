@@ -319,48 +319,149 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </button>
 
           {showDeals && (
-            <div className="mt-1.5 p-2.5 sm:p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div>
-                <label className="block text-[11px] font-medium text-indigo-900 mb-1">
-                  Coupon / Deal Type
-                </label>
-                <select
-                  id={`select-deal-type-${offer.id}`}
-                  value={offer.dealType}
-                  onChange={(e) => handleChange('dealType', e.target.value)}
-                  className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="none">No Special Deal</option>
-                  <option value="percent_off">% Percentage Off Coupon</option>
-                  <option value="flat_off">$ Flat Amount Off</option>
-                  <option value="bogo_free">Buy 1 Get 1 FREE (BOGO)</option>
-                  <option value="bogo_half">Buy 1 Get 1 50% OFF</option>
-                  <option value="multi_buy">Bundle Deal (e.g. 3 for $10)</option>
-                </select>
+            <div className="mt-1.5 p-2.5 sm:p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-2.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-indigo-950 mb-1">
+                    Coupon / Deal Type
+                  </label>
+                  <select
+                    id={`select-deal-type-${offer.id}`}
+                    value={offer.dealType}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      const defaultQty = ['multi_buy', 'buy_x_save_y'].includes(newType) ? 3 : 1;
+                      onUpdate({
+                        ...offer,
+                        dealType: newType as any,
+                        quantity: defaultQty,
+                        dealValue: offer.dealValue || 0,
+                      });
+                    }}
+                    className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="none">No Special Deal</option>
+                    <option value="new_price">Sale / Digital Price (e.g. Sale $3.49)</option>
+                    <option value="percent_off">% Percentage Off Coupon</option>
+                    <option value="flat_off">$ Flat Amount Off</option>
+                    <option value="buy_x_save_y">Buy X, Save $Y each (e.g. Buy 3, Save $2)</option>
+                    <option value="multi_buy">Bundle Deal (e.g. 3 for $10)</option>
+                    <option value="bogo_free">Buy 1 Get 1 FREE (BOGO)</option>
+                    <option value="bogo_half">Buy 1 Get 1 50% OFF</option>
+                  </select>
+                </div>
+
+                {/* SINGLE VALUE DEALS */}
+                {['percent_off', 'flat_off', 'new_price'].includes(offer.dealType) && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-indigo-950 mb-1">
+                      {offer.dealType === 'percent_off'
+                        ? 'Discount %'
+                        : offer.dealType === 'flat_off'
+                        ? 'Coupon $ Off'
+                        : 'Sale / Digital Price ($)'}
+                    </label>
+                    <input
+                      id={`input-deal-val-${offer.id}`}
+                      type="number"
+                      step="any"
+                      value={offer.dealValue || ''}
+                      onChange={(e) => handleChange('dealValue', parseFloat(e.target.value) || 0)}
+                      onFocus={(e) => e.target.select()}
+                      placeholder={
+                        offer.dealType === 'percent_off'
+                          ? 'e.g. 20'
+                          : offer.dealType === 'flat_off'
+                          ? 'e.g. 1.50'
+                          : 'e.g. 3.49'
+                      }
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+
+                {/* QUANTITY BUNDLE DEALS */}
+                {offer.dealType === 'multi_buy' && (
+                  <div className="grid grid-cols-2 gap-2 col-span-1 sm:col-span-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-indigo-950 mb-1">
+                        Bundle Quantity (X)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={offer.quantity || 3}
+                        onChange={(e) => handleChange('quantity', parseInt(e.target.value, 10) || 1)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="e.g. 3"
+                        className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-indigo-950 mb-1">
+                        Bundle Total Price ($)
+                      </label>
+                      <input
+                        id={`input-deal-val-${offer.id}`}
+                        type="number"
+                        step="any"
+                        value={offer.dealValue || ''}
+                        onChange={(e) => handleChange('dealValue', parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="e.g. 10.00"
+                        className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* BUY X SAVE Y DEALS */}
+                {offer.dealType === 'buy_x_save_y' && (
+                  <div className="grid grid-cols-2 gap-2 col-span-1 sm:col-span-2">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-indigo-950 mb-1">
+                        Required Qty (X)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={offer.quantity || 3}
+                        onChange={(e) => handleChange('quantity', parseInt(e.target.value, 10) || 1)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="e.g. 3"
+                        className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-indigo-950 mb-1">
+                        Save $Y per item
+                      </label>
+                      <input
+                        id={`input-deal-val-${offer.id}`}
+                        type="number"
+                        step="any"
+                        value={offer.dealValue || ''}
+                        onChange={(e) => handleChange('dealValue', parseFloat(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="e.g. 2.00"
+                        className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {['percent_off', 'flat_off', 'multi_buy'].includes(offer.dealType) && (
-                <div>
-                  <label className="block text-[11px] font-medium text-indigo-900 mb-1">
-                    {offer.dealType === 'percent_off'
-                      ? 'Discount %'
-                      : offer.dealType === 'flat_off'
-                      ? 'Coupon $ Off'
-                      : 'Bundle Total Price ($)'}
-                  </label>
-                  <input
-                    id={`input-deal-val-${offer.id}`}
-                    type="number"
-                    step="any"
-                    value={offer.dealValue || ''}
-                    onChange={(e) => handleChange('dealValue', parseFloat(e.target.value) || 0)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder={
-                      offer.dealType === 'percent_off' ? 'e.g. 20' : 'e.g. 1.50'
-                    }
-                    className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
+              {/* Dynamic Interactive Explanations */}
+              {offer.dealType === 'buy_x_save_y' && offer.dealValue > 0 && (
+                <p className="text-[10px] text-indigo-700 font-medium leading-relaxed bg-indigo-50 p-2 rounded-lg border border-indigo-100">
+                  💡 <b>Mix & Match Promo:</b> Buying {offer.quantity || 3} items saves ${offer.dealValue.toFixed(2)} on each.
+                  Your checkout total is <b>${((offer.quantity || 3) * Math.max(0, offer.price - offer.dealValue)).toFixed(2)}</b> (effective <b>${Math.max(0, offer.price - offer.dealValue).toFixed(2)}</b> each).
+                </p>
+              )}
+              {offer.dealType === 'multi_buy' && offer.dealValue > 0 && (
+                <p className="text-[10px] text-indigo-700 font-medium leading-relaxed bg-indigo-50 p-2 rounded-lg border border-indigo-100">
+                  💡 <b>Bundle Rule:</b> You get {offer.quantity || 3} items for a total of <b>${offer.dealValue.toFixed(2)}</b> (effective <b>${(offer.dealValue / (offer.quantity || 3)).toFixed(2)}</b> each).
+                </p>
               )}
             </div>
           )}
