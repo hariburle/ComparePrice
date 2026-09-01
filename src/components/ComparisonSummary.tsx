@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProductOffer, ReferenceBase, SavedComparison, StandardizedComparison, UnitCategory } from '../types';
 import { getReferenceBaseLabel, formatUnitPrice } from '../utils/units';
-import { Trophy, ArrowDownRight, Award, SlidersHorizontal, BookmarkPlus, History, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, ArrowDownRight, Award, SlidersHorizontal, BookmarkPlus, History, Check, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 
 interface ComparisonSummaryProps {
   comparisons: StandardizedComparison[];
@@ -10,6 +10,9 @@ interface ComparisonSummaryProps {
   onReferenceBaseChange: (base: ReferenceBase) => void;
   unitCategory: UnitCategory;
   onOpenSavedHistory?: () => void;
+  activeSavedComparisonId?: string | null;
+  hasChanged?: boolean;
+  onSaveComparison?: (isUpdate: boolean) => void;
 }
 
 export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
@@ -19,8 +22,12 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
   onReferenceBaseChange,
   unitCategory,
   onOpenSavedHistory,
+  activeSavedComparisonId = null,
+  hasChanged = true,
+  onSaveComparison,
 }) => {
   const [justSaved, setJustSaved] = useState<boolean>(false);
+  const [justUpdated, setJustUpdated] = useState<boolean>(false);
   const [isCompareByExpanded, setIsCompareByExpanded] = useState<boolean>(false);
 
   if (!comparisons || comparisons.length === 0) return null;
@@ -28,7 +35,20 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
   const validComparisons = comparisons.filter((c) => c.unitPricePerStandardBase > 0);
   if (validComparisons.length < 2) return null;
 
-  const handleQuickSave = () => {
+  const handleQuickSave = (isUpdate: boolean) => {
+    if (!hasChanged) return;
+    if (onSaveComparison) {
+      onSaveComparison(isUpdate);
+      if (isUpdate) {
+        setJustUpdated(true);
+        setTimeout(() => setJustUpdated(false), 2500);
+      } else {
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 2500);
+      }
+      return;
+    }
+
     try {
       const storedKey = 'bargain_hunter_saved_comparisons';
       const stored = localStorage.getItem(storedKey);
@@ -207,30 +227,87 @@ export const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
           </h4>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              id="quick-save-comparison-btn"
-              type="button"
-              onClick={handleQuickSave}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
-                justSaved
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-              }`}
-              title="Save this comparison to local history"
-            >
-              {justSaved ? (
-                <>
-                  <Check className="w-3 h-3 text-white" />
-                  <span>Saved!</span>
-                </>
-              ) : (
-                <>
-                  <BookmarkPlus className="w-3 h-3 text-emerald-600" />
-                  <span className="hidden sm:inline">Save Comparison</span>
-                  <span className="sm:hidden">Save</span>
-                </>
-              )}
-            </button>
+            {activeSavedComparisonId ? (
+              <div className="flex items-center gap-1">
+                <button
+                  id="quick-update-comparison-btn"
+                  type="button"
+                  onClick={() => handleQuickSave(true)}
+                  disabled={!hasChanged && !justUpdated}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                    justUpdated
+                      ? 'bg-emerald-600 text-white shadow-sm cursor-default'
+                      : !hasChanged
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 cursor-pointer'
+                  }`}
+                  title={justUpdated ? "Updated successfully!" : hasChanged ? "Update this saved comparison" : "No changes to update"}
+                >
+                  {justUpdated ? (
+                    <>
+                      <Check className="w-3 h-3 text-white" />
+                      <span>Updated!</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkPlus className="w-3 h-3 text-emerald-600" />
+                      <span>Update</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  id="quick-save-new-comparison-btn"
+                  type="button"
+                  onClick={() => handleQuickSave(false)}
+                  disabled={!hasChanged && !justSaved}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                    justSaved
+                      ? 'bg-indigo-600 text-white shadow-sm cursor-default'
+                      : !hasChanged
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 cursor-pointer'
+                  }`}
+                  title={justSaved ? "Saved as new copy!" : hasChanged ? "Save as a new comparison copy" : "No changes to save as new copy"}
+                >
+                  {justSaved ? (
+                    <>
+                      <Check className="w-3 h-3 text-white" />
+                      <span>Saved Copy!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3 h-3 text-indigo-600" />
+                      <span>Save</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <button
+                id="quick-save-comparison-btn"
+                type="button"
+                onClick={() => handleQuickSave(false)}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                  justSaved
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+                title="Save this comparison to local history"
+              >
+                {justSaved ? (
+                  <>
+                    <Check className="w-3 h-3 text-white" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <>
+                    <BookmarkPlus className="w-3 h-3 text-emerald-600" />
+                    <span>Save</span>
+                  </>
+                )}
+              </button>
+            )}
 
             {onOpenSavedHistory && (
               <button

@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { ProductOffer, ReferenceBase, SavedComparison } from '../types';
-import { History, Trash2, ExternalLink, BookmarkPlus, X, ShoppingCart } from 'lucide-react';
+import { History, Trash2, ExternalLink, BookmarkPlus, X, ShoppingCart, Plus } from 'lucide-react';
 
 interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentOffers: ProductOffer[];
   currentReferenceBase: ReferenceBase;
-  onLoadComparison: (offers: ProductOffer[], refBase: ReferenceBase) => void;
+  activeSavedComparisonId: string | null;
+  hasChanged: boolean;
+  saveCounter: number;
+  onLoadComparison: (offers: ProductOffer[], refBase: ReferenceBase, id: string | null) => void;
+  onActiveIdChange: (id: string | null) => void;
+  onSaveComparison: (isUpdate: boolean, customTitle?: string) => void;
 }
 
 const LOCAL_STORAGE_KEY = 'bargain_hunter_saved_comparisons';
@@ -17,7 +22,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onClose,
   currentOffers,
   currentReferenceBase,
+  activeSavedComparisonId,
+  hasChanged,
+  saveCounter,
   onLoadComparison,
+  onActiveIdChange,
+  onSaveComparison,
 }) => {
   const [savedLists, setSavedLists] = useState<SavedComparison[]>([]);
   const [tripTitle, setTripTitle] = useState<string>('');
@@ -32,7 +42,21 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     } catch (e) {
       console.error('Failed to load saved comparisons from storage', e);
     }
-  }, [isOpen]);
+  }, [isOpen, saveCounter]);
+
+  // Set default title when an active comparison is loaded
+  useEffect(() => {
+    if (isOpen) {
+      if (activeSavedComparisonId) {
+        const activeItem = savedLists.find((item) => item.id === activeSavedComparisonId);
+        if (activeItem && !tripTitle) {
+          setTripTitle(activeItem.title);
+        }
+      } else {
+        setTripTitle('');
+      }
+    }
+  }, [isOpen, activeSavedComparisonId, savedLists]);
 
   // Reset conflict item when modal closes
   useEffect(() => {
@@ -47,7 +71,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     if (currentOffers && currentOffers.length > 0) {
       setConflictItem(item);
     } else {
-      onLoadComparison(item.products, item.referenceBase);
+      onLoadComparison(item.products, item.referenceBase, item.id);
       onClose();
     }
   };
@@ -56,7 +80,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     if (!conflictItem) return;
 
     if (action === 'replace') {
-      onLoadComparison(conflictItem.products, conflictItem.referenceBase);
+      onLoadComparison(conflictItem.products, conflictItem.referenceBase, conflictItem.id);
     } else {
       // Merge with newly generated IDs to prevent key conflicts
       const mergedOffers = [
@@ -67,7 +91,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         })),
       ];
       // Keep existing reference base to maintain the current context
-      onLoadComparison(mergedOffers, currentReferenceBase);
+      onLoadComparison(mergedOffers, currentReferenceBase, activeSavedComparisonId);
     }
 
     setConflictItem(null);
@@ -76,25 +100,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
 
   const handleSaveCurrent = () => {
     if (!currentOffers || currentOffers.length === 0) return;
-
     const titleToUse = tripTitle.trim() || `Bargain Trip ${new Date().toLocaleDateString()}`;
-    const newEntry: SavedComparison = {
-      id: Date.now().toString(),
-      title: titleToUse,
-      category: 'General',
-      date: new Date().toLocaleDateString(),
-      referenceBase: currentReferenceBase,
-      products: currentOffers,
-    };
-
-    const updated = [newEntry, ...savedLists];
-    setSavedLists(updated);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to save to storage', e);
-    }
+    onSaveComparison(false, titleToUse);
     setTripTitle('');
+  };
+
+  const handleUpdateCurrent = () => {
+    if (!currentOffers || currentOffers.length === 0 || !activeSavedComparisonId) return;
+    const titleToUse = tripTitle.trim() || `Bargain Trip ${new Date().toLocaleDateString()}`;
+    onSaveComparison(true, titleToUse);
   };
 
   const handleDelete = (id: string) => {
@@ -104,6 +118,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to update storage', e);
+    }
+    if (id === activeSavedComparisonId) {
+      onActiveIdChange(null);
     }
   };
 
@@ -126,45 +143,102 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           Saved Bargain Comparisons
         </h3>
 
-        {/* Save Current Session Box */}
-        <div className="bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100 space-y-2 shrink-0">
-          <label className="block text-xs font-bold text-indigo-950">
-            Save Current Active Comparison
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={tripTitle}
-              onChange={(e) => setTripTitle(e.target.value)}
-              onFocus={(e) => e.target.select()}
-              placeholder="e.g. Costco vs Target Rice Run"
-              className="flex-1 text-xs bg-white border border-indigo-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              type="button"
-              onClick={handleSaveCurrent}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors shrink-0"
-            >
-              <BookmarkPlus className="w-4 h-4" /> Save
-            </button>
-          </div>
-        </div>
+        {/* Save/Update Current Session Box */}
+        {currentOffers && currentOffers.length > 0 && (() => {
+          const activeItem = activeSavedComparisonId ? savedLists.find((item) => item.id === activeSavedComparisonId) : null;
+          const isTitleChanged = activeItem && tripTitle.trim() !== '' ? tripTitle.trim() !== activeItem.title : false;
+          const canSaveOrUpdate = hasChanged || isTitleChanged;
+
+          return (
+            <div className="bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100 space-y-2 shrink-0">
+              <label className="block text-xs font-bold text-indigo-950">
+                {activeSavedComparisonId ? 'Update or Save Current Comparison' : 'Save Current Active Comparison'}
+              </label>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tripTitle}
+                    onChange={(e) => setTripTitle(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="e.g. Costco vs Target Rice Run"
+                    className="flex-1 text-xs bg-white border border-indigo-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {!activeSavedComparisonId && (
+                    <button
+                      type="button"
+                      onClick={handleSaveCurrent}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+                    >
+                      <BookmarkPlus className="w-4 h-4" /> Save
+                    </button>
+                  )}
+                </div>
+                {activeSavedComparisonId && (
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => canSaveOrUpdate && handleUpdateCurrent()}
+                      disabled={!canSaveOrUpdate}
+                      className={`font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors ${
+                        !canSaveOrUpdate
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                      }`}
+                      title={canSaveOrUpdate ? "Update this saved comparison" : "No changes to update"}
+                    >
+                      <BookmarkPlus className="w-4 h-4" /> Update
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => canSaveOrUpdate && handleSaveCurrent()}
+                      disabled={!canSaveOrUpdate}
+                      className={`font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors ${
+                        !canSaveOrUpdate
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          : 'bg-slate-600 hover:bg-slate-700 text-white cursor-pointer'
+                      }`}
+                      title={canSaveOrUpdate ? "Save as a new comparison copy" : "No changes to save"}
+                    >
+                      <Plus className="w-4 h-4" /> Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Saved Items List */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {savedLists.length === 0 ? (
             <div className="text-center py-8 text-slate-400 text-xs space-y-2">
               <ShoppingCart className="w-8 h-8 mx-auto opacity-40" />
-              <p>No saved trips yet. Save your current comparison above!</p>
+              <p>
+                {currentOffers && currentOffers.length > 0
+                  ? 'No saved trips yet. Save your current comparison above!'
+                  : 'No saved trips yet. Add items on the main calculator screen first!'}
+              </p>
             </div>
           ) : (
             savedLists.map((item) => (
               <div
                 key={item.id}
-                className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 hover:border-slate-300 transition-all"
+                className={`border rounded-2xl p-3.5 flex items-center justify-between gap-3 transition-all ${
+                  item.id === activeSavedComparisonId
+                    ? 'bg-indigo-50/50 border-indigo-300 ring-1 ring-indigo-200 shadow-xs'
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                }`}
               >
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900">{item.title}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-900">{item.title}</h4>
+                    {item.id === activeSavedComparisonId && (
+                      <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-md">
+                        Active
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
                     {item.products.length} Items • Saved on {item.date} • Base: {item.referenceBase}
                   </div>
@@ -174,7 +248,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleLoadClick(item)}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl font-bold text-xs flex items-center gap-1"
+                    className="p-2 text-indigo-600 hover:bg-indigo-50/80 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer"
                     title="Load into Calculator"
                   >
                     <ExternalLink className="w-4 h-4" /> Load
@@ -182,7 +256,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />

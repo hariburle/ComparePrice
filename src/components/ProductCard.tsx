@@ -128,21 +128,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Card Actions */}
-        <div className="flex items-center gap-0.5 ml-auto">
+        <div className="flex items-center gap-0.5 ml-auto shrink-0">
           <button
             id={`scan-btn-${offer.id}`}
             type="button"
             onClick={onScanClick}
-            className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2 shrink-0 border border-indigo-200/70"
+            className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-1.5 sm:px-2 shrink-0 border border-indigo-200/70"
             title="Scan item, price tag, or barcode"
           >
             <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden xs:inline sm:inline">Scan Item/Tag</span>
+            <span className="hidden sm:inline">Scan</span>
           </button>
           <button
             type="button"
             onClick={handleShare}
-            className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2 shrink-0"
+            className="p-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-1.5 sm:px-2 shrink-0"
             title="Share item details"
           >
             {sharedItem ? <Check className="w-3.5 h-3.5 text-indigo-600" /> : <Share2 className="w-3.5 h-3.5 text-indigo-600" />}
@@ -151,7 +151,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <button
             type="button"
             onClick={handleCopyDetails}
-            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-2 shrink-0"
+            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold px-1.5 sm:px-2 shrink-0"
             title="Copy item details to clipboard"
           >
             {copiedItem ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}

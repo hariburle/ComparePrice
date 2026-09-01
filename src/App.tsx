@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import appLogo from './assets/logo.jpg';
-import { ProductOffer, ReferenceBase, UnitCategory } from './types';
+import { ProductOffer, ReferenceBase, UnitCategory, SavedComparison } from './types';
 import { compareProductOffers, getUnitCategory } from './utils/units';
 import { ProductCard } from './components/ProductCard';
 import { ComparisonSummary } from './components/ComparisonSummary';
@@ -38,6 +38,8 @@ export default function App() {
   const [products, setProducts] = useState<ProductOffer[]>([]);
 
   const [referenceBase, setReferenceBase] = useState<ReferenceBase>('100g');
+  const [activeSavedComparisonId, setActiveSavedComparisonId] = useState<string | null>(null);
+  const [saveCounter, setSaveCounter] = useState<number>(0);
   const [activeScanIndex, setActiveScanIndex] = useState<number | null>(null);
   const [isScanModalOpen, setIsScanModalOpen] = useState<boolean>(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
@@ -79,6 +81,7 @@ export default function App() {
     setHasStarted(true);
     if (products.length <= 1) {
       setProducts([]);
+      setActiveSavedComparisonId(null);
       return;
     }
     setProducts(products.filter((p) => p.id !== id));
@@ -103,6 +106,96 @@ export default function App() {
   const handleReset = () => {
     setHasStarted(false);
     setProducts([]);
+    setActiveSavedComparisonId(null);
+  };
+
+  // Check if current state has changed compared to the active saved comparison
+  const checkHasChanged = (): boolean => {
+    if (!activeSavedComparisonId) return true; // If starting fresh/new, we can always save
+    try {
+      const storedKey = 'bargain_hunter_saved_comparisons';
+      const stored = localStorage.getItem(storedKey);
+      const savedLists: SavedComparison[] = stored ? JSON.parse(stored) : [];
+      const activeItem = savedLists.find((item) => item.id === activeSavedComparisonId);
+      if (!activeItem) return true;
+
+      if (activeItem.referenceBase !== referenceBase) return true;
+      if (activeItem.products.length !== products.length) return true;
+
+      for (let i = 0; i < products.length; i++) {
+        const p1 = products[i];
+        const p2 = activeItem.products[i];
+        if (
+          p1.id !== p2.id ||
+          p1.name !== p2.name ||
+          p1.price !== p2.price ||
+          p1.size !== p2.size ||
+          p1.unit !== p2.unit ||
+          (p1.storeName || '') !== (p2.storeName || '') ||
+          (p1.brand || '') !== (p2.brand || '') ||
+          (p1.barcode || '') !== (p2.barcode || '') ||
+          (p1.notes || '') !== (p2.notes || '') ||
+          p1.quantity !== p2.quantity ||
+          p1.packCount !== p2.packCount ||
+          p1.dealType !== p2.dealType ||
+          p1.dealValue !== p2.dealValue
+        ) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      return true;
+    }
+  };
+
+  const hasChanged = checkHasChanged();
+
+  // Save or Update comparison
+  const handleSaveComparison = (isUpdate: boolean, customTitle?: string) => {
+    try {
+      const storedKey = 'bargain_hunter_saved_comparisons';
+      const stored = localStorage.getItem(storedKey);
+      const savedLists: SavedComparison[] = stored ? JSON.parse(stored) : [];
+
+      if (isUpdate && activeSavedComparisonId) {
+        // Update existing
+        const updated = savedLists.map((item) => {
+          if (item.id === activeSavedComparisonId) {
+            return {
+              ...item,
+              title: customTitle?.trim() || item.title,
+              date: new Date().toLocaleDateString(),
+              referenceBase,
+              products,
+            };
+          }
+          return item;
+        });
+        localStorage.setItem(storedKey, JSON.stringify(updated));
+      } else {
+        // Save as new copy
+        const topProduct = products[0]?.name || 'Items';
+        const defaultTitle = `${topProduct} Comparison (${new Date().toLocaleDateString()})`;
+        const titleToUse = customTitle?.trim() || defaultTitle;
+
+        const newEntry: SavedComparison = {
+          id: Date.now().toString(),
+          title: titleToUse,
+          category: 'General',
+          date: new Date().toLocaleDateString(),
+          referenceBase,
+          products,
+        };
+
+        const updated = [newEntry, ...savedLists];
+        localStorage.setItem(storedKey, JSON.stringify(updated));
+        setActiveSavedComparisonId(newEntry.id);
+      }
+      setSaveCounter((prev) => prev + 1);
+    } catch (e) {
+      console.error('Failed to save comparison', e);
+    }
   };
 
   // Load preset scenario
@@ -380,6 +473,9 @@ export default function App() {
               onReferenceBaseChange={(base) => setReferenceBase(base)}
               unitCategory={unitCategory}
               onOpenSavedHistory={() => setIsHistoryModalOpen(true)}
+              activeSavedComparisonId={activeSavedComparisonId}
+              hasChanged={hasChanged}
+              onSaveComparison={handleSaveComparison}
             />
 
             {/* Offers Header Control */}
@@ -517,10 +613,19 @@ export default function App() {
         onClose={() => setIsHistoryModalOpen(false)}
         currentOffers={products}
         currentReferenceBase={referenceBase}
-        onLoadComparison={(loadedOffers, refBase) => {
+        activeSavedComparisonId={activeSavedComparisonId}
+        hasChanged={hasChanged}
+        saveCounter={saveCounter}
+        onLoadComparison={(loadedOffers, refBase, savedId) => {
           setProducts(loadedOffers);
           setReferenceBase(refBase);
+          setActiveSavedComparisonId(savedId);
+          setHasStarted(true);
         }}
+        onActiveIdChange={(id) => {
+          setActiveSavedComparisonId(id);
+        }}
+        onSaveComparison={handleSaveComparison}
       />
 
       {/* App Settings Modal */}
