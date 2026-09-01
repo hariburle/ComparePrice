@@ -17,7 +17,25 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "  Building Android APK (Capacitor Flow)   " -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
-# 1. Environment & Secrets Check
+# 1. Get Latest Git Code
+Write-Host "`n[1/7] Fetching latest changes from Git..." -ForegroundColor Cyan
+if (Test-Path .git) {
+    if (Get-Command "git" -ErrorAction SilentlyContinue) {
+        try {
+            Write-Host "    Pulling latest commits from remote repository..." -ForegroundColor Yellow
+            git pull
+            Write-Host "[+] Git repository updated successfully." -ForegroundColor Green
+        } catch {
+            Write-Host "    [!] Git pull encountered an issue. Continuing with local files..." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "    [!] Git command not found on host machine. Skipping remote update..." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "    [.] Not running inside a Git repository. Skipping git pull." -ForegroundColor Yellow
+}
+
+# 2. Environment & Secrets Check
 $EnvFile = ".env"
 $EnvLocalFile = ".env.local"
 
@@ -31,7 +49,7 @@ if (!(Test-Path $EnvFile) -and !(Test-Path $EnvLocalFile)) {
 }
 
 # 2. Check Node.js, npm, and Android SDK (ANDROID_HOME)
-Write-Host "`n[1/6] Checking prerequisites..." -ForegroundColor Cyan
+Write-Host "`n[2/7] Checking prerequisites..." -ForegroundColor Cyan
 if (-not (Get-Command "npm" -ErrorAction SilentlyContinue)) {
     Write-Error "npm is not installed or not in PATH. Please install Node.js."
 }
@@ -63,7 +81,7 @@ if ([string]::IsNullOrEmpty($env:ANDROID_HOME)) {
 }
 
 # 3. Check / Install Capacitor dependencies
-Write-Host "`n[2/6] Ensuring Capacitor dependencies are installed..." -ForegroundColor Cyan
+Write-Host "`n[3/7] Ensuring Capacitor dependencies are installed..." -ForegroundColor Cyan
 if (!(Test-Path "node_modules/@capacitor/core") -or !(Test-Path "node_modules/@capacitor/share")) {
     Write-Host "    Installing Capacitor CLI, Android runtime, and Share plugin..." -ForegroundColor Yellow
     npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/share
@@ -72,7 +90,7 @@ if (!(Test-Path "node_modules/@capacitor/core") -or !(Test-Path "node_modules/@c
 }
 
 # 4. Build Vite Static Assets
-Write-Host "`n[3/6] Building static web application (dist)..." -ForegroundColor Cyan
+Write-Host "`n[4/7] Building static web application (dist)..." -ForegroundColor Cyan
 npm run build
 
 if (!(Test-Path "dist")) {
@@ -80,7 +98,7 @@ if (!(Test-Path "dist")) {
 }
 
 # 5. Initialize Android Platform if needed
-Write-Host "`n[4/6] Setting up Android platform..." -ForegroundColor Cyan
+Write-Host "`n[5/7] Setting up Android platform..." -ForegroundColor Cyan
 if (!(Test-Path "android") -or !(Test-Path "android/gradlew.bat")) {
     if (Test-Path "android") {
         Write-Host "    'android' folder exists but is incomplete (missing gradlew.bat). Recreating platform..." -ForegroundColor Yellow
@@ -124,11 +142,11 @@ if (Test-Path $ManifestPath) {
 }
 
 # 6. Sync Web Assets to Android Project
-Write-Host "`n[5/6] Syncing web assets to Android native project..." -ForegroundColor Cyan
+Write-Host "`n[6/7] Syncing web assets to Android native project..." -ForegroundColor Cyan
 npx cap sync android
 
 # 7. Compile Android APK using Gradle
-Write-Host "`n[6/6] Compiling Android APK via Gradle..." -ForegroundColor Cyan
+Write-Host "`n[7/7] Compiling Android APK via Gradle..." -ForegroundColor Cyan
 Set-Location android
 
 if ($IsWindows -or $env:OS -like "*Windows*") {
